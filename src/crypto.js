@@ -1,4 +1,4 @@
-import * as CSLwasm from "@emurgo/cardano-serialization-lib-nodejs";
+import * as CSLwasm from "@dcspark/cardano-multiplatform-lib-nodejs";
 import { mnemonicToEntropy, generateMnemonic, validateMnemonic } from 'bip39';
 import CryptoJS from "crypto-js";
 

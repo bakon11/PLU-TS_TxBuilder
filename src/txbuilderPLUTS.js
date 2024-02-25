@@ -1,4 +1,5 @@
 import { TxBuilder, CborPositiveRational, defaultV1Costs, defaultV2Costs, ExBudget, Address, Certificate, CertificateType, Hash28, Hash32, PoolKeyHash, PoolParams, PubKeyHash, Script, ScriptType, StakeAddress, StakeCredentials, StakeValidatorHash, Tx, TxIn, TxMetadata, UTxO, Value, forceTxOutRefStr, isITxOut, isIUTxO} from "@harmoniclabs/plu-ts";
+import { decrypt } from "./crypto.js";
 
 /*
 ##########################################################################################################
@@ -106,14 +107,12 @@ const testTxFunction = async () => {
     "82825820ad7828a65ced5b48058230c88f1b420973bafa2fd546d5161cf008ab807624760182583901130768a0e391b8c77be560580729ec927393e688991929129e609a4bb093f044b77f2fb13ce1828c954b1858ac9f76935e74e391c4255e721a000eedc2",
     "828258205d8e75f465e9d7fc413bb03caf7a0b0d280b62d01bb9b853afbef8a25523ae820082583901130768a0e391b8c77be560580729ec927393e688991929129e609a4bb093f044b77f2fb13ce1828c954b1858ac9f76935e74e391c4255e721a002b1d8b"
   ];
-  
-
   /*
   ##########################################################################################################
   Constructing UTxO instances from CBORs gathered through CIP30 getUtxos() method
   #############################d############################################################################
   */
-  const inputs = cbors.map( UTxO.fromCbor ); // UTxO[]
+  // const inputs = cbors.map( UTxO.fromCbor ); // UTxO[]
   // console.log("inputs", inputs);
 
   /*
@@ -121,52 +120,82 @@ const testTxFunction = async () => {
   Use when using UTXO info from other sources like Kupo indexer or BLockfrost
   #############################d############################################################################
   */
-  /*
+  let kupoRes = {
+    "transaction_index": 17,
+    "transaction_id": "f486c85056d208a423af09a96f3744746e304a77b7c61d955c3fe8afeb153473",
+    "output_index": 0,
+    "address": "addr1qyfsw69quwgm33mmu4s9spefajf88ylx3zv3j2gjnesf5jasj0cyfdml97cnecvz3j25kxzc4j0hdy67wn3er3p9teeq6ahdpn",
+    "value": {
+        "coins": 19789863,
+        "assets": {
+            "b812d5a466604bcc25d2313183c387cebf52302738b5a178daf146f0.4d616e64616c612331": 100,
+            "b812d5a466604bcc25d2313183c387cebf52302738b5a178daf146f0.4d616e64616c612332": 100,
+            "b812d5a466604bcc25d2313183c387cebf52302738b5a178daf146f0.4d616e64616c612333": 100,
+            "b812d5a466604bcc25d2313183c387cebf52302738b5a178daf146f0.4d616e64616c612334": 100,
+            "b812d5a466604bcc25d2313183c387cebf52302738b5a178daf146f0.4d616e64616c612335": 100,
+            "b812d5a466604bcc25d2313183c387cebf52302738b5a178daf146f0.4d616e64616c612336": 100,
+            "b88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12a.4d65726b616261232d31": 100,
+            "b88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12a.4d65726b616261232d32": 100,
+            "b88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12a.4d65726b616261232d33": 100,
+            "b88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12a.4d65726b6162612330": 100,
+            "b88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12a.4d65726b6162612331": 100,
+            "b88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12a.4d65726b6162612332": 100,
+            "b88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12a.4d65726b6162612333": 100,
+            "b88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12a.4d65726b6162612334": 100
+        }
+    },
+    "datum_hash": null,
+    "script_hash": null,
+    "created_at": {
+        "slot_no": 116913644,
+        "header_hash": "5c252917fe7f8e1d57fd65f2287349509f379df5816e881f8583e16d6a75b1a7"
+    },
+    "spent_at": null
+  };
+
   const inputs = new UTxO({
     utxoRef: {
-      id: Buffer.from( transaction_id, "hex" ),
-      index: output_index
+      id:  kupoRes.transaction_id,
+      index: kupoRes.output_index
     },
     resolved: {
-      address: Address.fromString( address ),
+      address: Address.fromString( kupoRes.address ),
       value: [], // parse kupo value
       datum: [], // parse kupo datum 
       refScript: "" // look for ref script if any
     }
   });
-  */
+  
 
   /*
   ##########################################################################################################
-  Change address, address that will receive whats left over from spent UTXOS.
+  Change address: address that will receive whats left over from spent UTXOS.
   #############################d############################################################################
   */
   const changeAddress ="addr1qyfsw69quwgm33mmu4s9spefajf88ylx3zv3j2gjnesf5jasj0cyfdml97cnecvz3j25kxzc4j0hdy67wn3er3p9teeq6ahdpn";
-  console.log("changeAddress", changeAddress);
+  // console.log("changeAddress", changeAddress);
   
   /*
   ##########################################################################################################
-  Creating outputs from CBORs
+  receiving Address: address that will receive the goods.
   #############################d############################################################################
   */
+  const receivingAddress ="addr1qyfsw69quwgm33mmu4s9spefajf88ylx3zv3j2gjnesf5jasj0cyfdml97cnecvz3j25kxzc4j0hdy67wn3er3p9teeq6ahdpn";
+  
   /*
-  const transaction_id = "f486c85056d208a423af09a96f3744746e304a77b7c61d955c3fe8afeb153473";
+  ##########################################################################################################
+  Creating outputs for receiving address
+  #############################d############################################################################
+  */
   const outputs = new UTxO({
-    utxoRef: {
-      id: transaction_id,
-      index: 0
-    },
     resolved: {
-      address: Address.fromString( changeAddress ),
+      address: Address.fromString( receivingAddress ),
       value:  [ Value.lovelaces(2000000) ], // parse kupo value
       datum: [], // parse kupo datum 
       refScript: "" // look for ref script if any
     }
   });
-  */
-  const outputs = cbors.map( UTxO.fromCbor ); // UTxO[]
-  // console.log("inputs", inputs);
-
+  console.log("outputs", outputs);
 
   try{
     txBuilder.buildSync({inputs, changeAddress, outputs});

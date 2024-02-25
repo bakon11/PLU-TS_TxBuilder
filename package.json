@@ -11,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@dcspark/cardano-multiplatform-lib-nodejs": "^3.1.2",
     "@harmoniclabs/plu-ts": "^0.7.0",
     "bip38": "^3.1.1",
     "bip39": "^3.1.0",
