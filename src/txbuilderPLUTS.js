@@ -1,5 +1,58 @@
 import { TxBuilder, CborPositiveRational, defaultV1Costs, defaultV2Costs, ExBudget, Address, Certificate, CertificateType, Hash28, Hash32, PoolKeyHash, PoolParams, PubKeyHash, Script, ScriptType, StakeAddress, StakeCredentials, StakeValidatorHash, Tx, TxIn, TxMetadata, UTxO, Value, forceTxOutRefStr, isITxOut, isIUTxO} from "@harmoniclabs/plu-ts";
-import { decrypt } from "./crypto.js";
+import { decrypt, encrypt } from "./crypto.js";
+
+const genKeys = async () => {
+  let keys = fs.readFileSync('keys.json', 'utf8');
+  // console.log("keys", keys);
+  const seedPhrase = JSON.parse(keys).seedPhrase;
+  const walletPassword = JSON.parse(keys).walletPassword;
+  // const seedPhrase = await genSeedPhrase();
+  console.log("seedPhrase", seedPhrase);
+  const entropy = await seedPhraseToEntropy(seedPhrase);
+  console.log("entropy", entropy);
+  const rootXPRV = await genXPRV(entropy);
+  // console.log("rootXPRV", rootXPRV.to_bech32());
+  // console.log("rootXPUB", rootXPRV.to_public().to_bech32());
+  console.log("creating wallet/account/address");
+    const accountKeyPrv = await genAccountKeyPrv( rootXPRV, 1852, 1815, 0 );
+    // console.log("accountKeyPrv", await encrypt( walletPassword, accountKeyPrv.to_bech32() ));
+    // let keyBech = accountKeyPrv.to_bech32();
+    // console.log("accountKeyPrv", keyBech.to_raw_key());
+    // console.log("accountKeyPub", accountKeyPrv.to_public().to_bech32());
+    const accountAddressKeyPrv = await genAddressSigningKey(accountKeyPrv, 0);
+    // console.log("AccountAddressKeyPrv Key", await encrypt( walletPassword, accountAddressKeyPrv.to_bech32()));
+    // console.log("AccountAddressKeyPRV Key", accountAddressKeyPrv.to_bech32());
+    // console.log("AccountAddressKeyPUB Key", accountAddressKeyPrv.to_public().to_bech32());
+    const accountStakeKeyPrv = await genStakeKey(accountKeyPrv, 0);
+    // console.log("accountStakeKeyPrv", await encrypt( walletPassword, accountStakeKeyPrv.to_bech32()));
+    // console.log("accountStakeKeyPrv", accountStakeKeyPrv.to_bech32());
+    // console.log("accountStakeKeyPub", accountStakeKeyPrv.to_public().to_bech32());
+    const baseAddress = await genBaseAddr( 1, accountAddressKeyPrv.to_public(), accountStakeKeyPrv.to_public());
+    // console.log("baseAddress", baseAddress.to_address().to_bech32());
+    const stakeAddress = await genRewardAddr( 1,  accountStakeKeyPrv.to_public() );
+    // console.log("stakeAddress", stakeAddress.to_address().to_bech32());
+    // create/upgrade the database without version checks
+    let newKeys = {
+      seedPhrase,
+      walletPassword,
+      walletID: rootXPRV.to_public().to_bech32().slice( 100 ),
+      accountIndex: 0,
+      // walletName: !walletName ? "wallet " + 0 : walletName,
+      rootXPRV: await encrypt(walletPassword, rootXPRV.to_bech32()),
+      rootXPUB: rootXPRV.to_public().to_bech32(),
+      accountKeyPrv: await encrypt(walletPassword, accountKeyPrv.to_bech32()),
+      accountKeyPub: accountAddressKeyPrv.to_public().to_bech32(),
+      accountAddressKeyPrv: await encrypt(walletPassword, accountAddressKeyPrv.to_bech32()),
+      accountAddressKeyPub: accountAddressKeyPrv.to_public().to_bech32(),
+      accountStakeKeyPrv:  await encrypt(walletPassword, accountStakeKeyPrv.to_bech32()),
+      accountStakeKeyPub: accountStakeKeyPrv.to_public().to_bech32(),
+      baseAddress_bech32: baseAddress.to_address().to_bech32(),
+      baseAddress_hex: baseAddress.to_address().to_hex(),
+      stakeAddress: stakeAddress.to_address().to_bech32(),
+    };
+    console.log("new keys: ", newKeys);
+    fs.writeFileSync('keys.json', JSON.stringify({ ...newKeys }, null, 2));
+}
 
 /*
 ##########################################################################################################
@@ -70,7 +123,34 @@ const constructKoiosProtocolParams = async ( protocolParamsKoiosRes ) => {
   return defaultProtocolParameters;
 }
 
+const kupoFetchUTXOS = async ( uri ) => {
+  // const uri = `matches/*?transaction_id=${txhash}`;
+  let settings= {};
+  settings = {
+    method: "GET",
+    headers: {},
+    redirect: "follow"
+  };
+  try {
+    const fetchResponse = await fetch(`http://kupomain.onchainapps.io/${uri}`, settings);
+    const data = await fetchResponse.json();
+    // console.log(data);
+    return(data);
+  } catch (e) {
+    console.log(e);
+    return e;
+  };
+};
+
 const testTxFunction = async () => {
+  /*
+  ##########################################################################################################
+  Keys.json file contianing all addresses and encrypted private keys, created with the genKeys() function.
+  Look at example keys.json file
+  #############################d############################################################################
+  */
+  let keys = fs.readFileSync('keys.json', 'utf8');
+  
   /*
   ##########################################################################################################
   Fetching ProtocolParams from Koios API V1
@@ -120,38 +200,7 @@ const testTxFunction = async () => {
   Use when using UTXO info from other sources like Kupo indexer or BLockfrost
   #############################d############################################################################
   */
-  let kupoRes = {
-    "transaction_index": 17,
-    "transaction_id": "f486c85056d208a423af09a96f3744746e304a77b7c61d955c3fe8afeb153473",
-    "output_index": 0,
-    "address": "addr1qyfsw69quwgm33mmu4s9spefajf88ylx3zv3j2gjnesf5jasj0cyfdml97cnecvz3j25kxzc4j0hdy67wn3er3p9teeq6ahdpn",
-    "value": {
-        "coins": 19789863,
-        "assets": {
-            "b812d5a466604bcc25d2313183c387cebf52302738b5a178daf146f0.4d616e64616c612331": 100,
-            "b812d5a466604bcc25d2313183c387cebf52302738b5a178daf146f0.4d616e64616c612332": 100,
-            "b812d5a466604bcc25d2313183c387cebf52302738b5a178daf146f0.4d616e64616c612333": 100,
-            "b812d5a466604bcc25d2313183c387cebf52302738b5a178daf146f0.4d616e64616c612334": 100,
-            "b812d5a466604bcc25d2313183c387cebf52302738b5a178daf146f0.4d616e64616c612335": 100,
-            "b812d5a466604bcc25d2313183c387cebf52302738b5a178daf146f0.4d616e64616c612336": 100,
-            "b88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12a.4d65726b616261232d31": 100,
-            "b88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12a.4d65726b616261232d32": 100,
-            "b88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12a.4d65726b616261232d33": 100,
-            "b88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12a.4d65726b6162612330": 100,
-            "b88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12a.4d65726b6162612331": 100,
-            "b88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12a.4d65726b6162612332": 100,
-            "b88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12a.4d65726b6162612333": 100,
-            "b88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12a.4d65726b6162612334": 100
-        }
-    },
-    "datum_hash": null,
-    "script_hash": null,
-    "created_at": {
-        "slot_no": 116913644,
-        "header_hash": "5c252917fe7f8e1d57fd65f2287349509f379df5816e881f8583e16d6a75b1a7"
-    },
-    "spent_at": null
-  };
+  let kupoRes = await kupoFetchUTXOS(`matches/${changeAddress}?unspent`);
 
   const inputs = new UTxO({
     utxoRef: {
@@ -172,9 +221,9 @@ const testTxFunction = async () => {
   Change address: address that will receive whats left over from spent UTXOS.
   #############################d############################################################################
   */
-  const changeAddress ="addr1qyfsw69quwgm33mmu4s9spefajf88ylx3zv3j2gjnesf5jasj0cyfdml97cnecvz3j25kxzc4j0hdy67wn3er3p9teeq6ahdpn";
+  const changeAddress = JSON.parse(keys).baseAddress_bech32;
   // console.log("changeAddress", changeAddress);
-  
+
   /*
   ##########################################################################################################
   receiving Address: address that will receive the goods.
