@@ -2,7 +2,7 @@
   "name": "plu-ts_txbuilder",
   "version": "1.0.0",
   "description": "Cardano transaction builder that uses Harmoniclabs PLU-TS library",
-  "module": "index.ts",
+  "module": "index.js",
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -15,5 +15,8 @@
     "bip38": "^3.1.1",
     "bip39": "^3.1.0",
     "crypto-js": "^4.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
   }
 }

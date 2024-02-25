@@ -141,7 +141,7 @@ const testTxFunction = async () => {
   Change address, address that will receive whats left over from spent UTXOS.
   #############################d############################################################################
   */
-  const changeAddress ="addr1q9shhjkju8aw2fpt4ttdnzrqcdacaegpglfezen33kq9l2wcdqua0w5yj7d8thpulynjly2yrhwxvdhtrxqjpmy60uqs4h7cyp";
+  const changeAddress ="addr1qyfsw69quwgm33mmu4s9spefajf88ylx3zv3j2gjnesf5jasj0cyfdml97cnecvz3j25kxzc4j0hdy67wn3er3p9teeq6ahdpn";
   console.log("changeAddress", changeAddress);
   
   /*
@@ -149,10 +149,30 @@ const testTxFunction = async () => {
   Creating outputs from CBORs
   #############################d############################################################################
   */
+  /*
+  const transaction_id = "f486c85056d208a423af09a96f3744746e304a77b7c61d955c3fe8afeb153473";
+  const outputs = new UTxO({
+    utxoRef: {
+      id: transaction_id,
+      index: 0
+    },
+    resolved: {
+      address: Address.fromString( changeAddress ),
+      value:  [ Value.lovelaces(2000000) ], // parse kupo value
+      datum: [], // parse kupo datum 
+      refScript: "" // look for ref script if any
+    }
+  });
+  */
   const outputs = cbors.map( UTxO.fromCbor ); // UTxO[]
+  // console.log("inputs", inputs);
 
 
-  txBuilder.buildSync(inputs, changeAddress, outputs );
+  try{
+    txBuilder.buildSync({inputs, changeAddress, outputs});
+  }catch( error ){
+    console.log("txBuilder.buildSync", error);
+  } 
 
 };
 
