@@ -15,6 +15,7 @@
     "@harmoniclabs/plu-ts": "^0.7.0",
     "bip38": "^3.1.1",
     "bip39": "^3.1.0",
+    "cbor-x": "^1.5.8",
     "crypto-js": "^4.2.0"
   },
   "devDependencies": {
