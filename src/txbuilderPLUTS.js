@@ -2,6 +2,7 @@ import { TxBuilder, CborPositiveRational, defaultV1Costs, defaultV2Costs, ExBudg
 import { decrypt, encrypt } from "./crypto.js";
 import { koiosAPI, kupoAPI, genKeys } from "./utils.js";
 import fs from 'fs';
+import { Datum } from "@dcspark/cardano-multiplatform-lib-nodejs";
 
 const constructKoiosProtocolParams = async ( protocolParamsKoiosRes ) => { 
   /*
@@ -83,7 +84,7 @@ const testTxFunction = async () => {
   CIP30 getUtxos() method CBORs example for now.
   ##########################################################################################################
   */
- /*
+ 
   let cbors = [
     "828258204b82398febd68fab512a56fd1786f05cc13ae2af706ebb9dc90502b499dfff010082583901130768a0e391b8c77be560580729ec927393e688991929129e609a4bb093f044b77f2fb13ce1828c954b1858ac9f76935e74e391c4255e72821a004c4b40a2581cb812d5a466604bcc25d2313183c387cebf52302738b5a178daf146f0a6494d616e64616c6123311864494d616e64616c6123321864494d616e64616c6123331864494d616e64616c6123341864494d616e64616c6123351864494d616e64616c6123361864581cb88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12aa8494d65726b61626123301864494d65726b61626123311864494d65726b61626123321864494d65726b61626123331864494d65726b616261233418644a4d65726b616261232d3118644a4d65726b616261232d3218644a4d65726b616261232d331864",
     "82825820ad7828a65ced5b48058230c88f1b420973bafa2fd546d5161cf008ab807624760082583901130768a0e391b8c77be560580729ec927393e688991929129e609a4bb093f044b77f2fb13ce1828c954b1858ac9f76935e74e391c4255e721a002dc6c0",
@@ -91,12 +92,13 @@ const testTxFunction = async () => {
     "828258205d8e75f465e9d7fc413bb03caf7a0b0d280b62d01bb9b853afbef8a25523ae820082583901130768a0e391b8c77be560580729ec927393e688991929129e609a4bb093f044b77f2fb13ce1828c954b1858ac9f76935e74e391c4255e721a002b1d8b"
   ];
 
+  /*
   ##########################################################################################################
   Constructing UTxO instances from CBORs gathered through CIP30 getUtxos() method
   #############################d############################################################################
   */
   // const inputs = cbors.map( UTxO.fromCbor ); // UTxO[]
-  // console.log("inputs", inputs);
+  // console.log("inputs", inputs[0].resolved.value);
 
   /*
   ##########################################################################################################
@@ -104,9 +106,10 @@ const testTxFunction = async () => {
   #############################d############################################################################
   */
   let kupoRes = await kupoAPI(`matches/${JSON.parse(keys).baseAddress_bech32}?unspent`);
-  console.log("kupoRes", kupoRes);
+  console.log("kupoRes", kupoRes[0].value.coins);
 
   // for now will just pick first utxo object from array
+  
   const inputs = new UTxO({
     utxoRef: {
       id:  kupoRes[0].transaction_id,
@@ -114,12 +117,12 @@ const testTxFunction = async () => {
     },
     resolved: {
       address: Address.fromString( kupoRes[0].address ),
-      value: [], // parse kupo value
-      datum: [], // parse kupo datum 
-      refScript: "" // look for ref script if any
+      value: Value.lovelaces(1000000), // parse kupo value
+      datum: Value.datum, // parse kupo datum 
+      refScript: Value.refScript // look for ref script if any
     }
   });
-  
+  console.log("inputs", inputs);
   /*
   ##########################################################################################################
   Change address: address that will receive whats left over from spent UTXOS.
@@ -140,16 +143,21 @@ const testTxFunction = async () => {
   Creating outputs for receiving address
   #############################d############################################################################
   */
+  
   const outputs = new UTxO({
+    utxoRef: {
+      id:  kupoRes[0].transaction_id,
+      index: kupoRes[0].output_index
+    },
     resolved: {
-      address: Address.fromString( receivingAddress ),
-      value:  [ Value.lovelaces(2000000) ], // parse kupo value
-      datum: [], // parse kupo datum 
-      refScript: "" // look for ref script if any
+      address: Address.fromString( kupoRes[0].address ),
+      value: Value.lovelaces(1000000), // parse kupo value
+      datum: Value.datum, // parse kupo datum 
+      refScript: Value.refScript // look for ref script if any
     }
   });
   console.log("outputs", outputs);
-
+  
   try{
     txBuilder.buildSync({inputs, changeAddress, outputs});
   }catch( error ){
