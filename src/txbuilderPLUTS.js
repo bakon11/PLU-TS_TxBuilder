@@ -106,7 +106,7 @@ const testTxFunction = async () => {
   #############################d############################################################################
   */
   let kupoRes = await kupoAPI(`matches/${JSON.parse(keys).baseAddress_bech32}?unspent`);
-  console.log("kupoRes", kupoRes[0].value.coins);
+  // console.log("kupoRes", kupoRes[0].value.coins);
 
   // for now will just pick first utxo object from array
   
@@ -117,12 +117,12 @@ const testTxFunction = async () => {
     },
     resolved: {
       address: Address.fromString( kupoRes[0].address ),
-      value: Value.lovelaces(1000000), // parse kupo value
-      datum: Value.datum, // parse kupo datum 
-      refScript: Value.refScript // look for ref script if any
+      value: Value.lovelaces(kupoRes[0].value.coins) // parse kupo value
+      // datum: [], // parse kupo datum 
+      // refScript: [] // look for ref script if any
     }
   });
-  console.log("inputs", inputs);
+  // console.log("inputs", inputs);
   /*
   ##########################################################################################################
   Change address: address that will receive whats left over from spent UTXOS.
@@ -151,15 +151,17 @@ const testTxFunction = async () => {
     },
     resolved: {
       address: Address.fromString( kupoRes[0].address ),
-      value: Value.lovelaces(1000000), // parse kupo value
-      datum: Value.datum, // parse kupo datum 
-      refScript: Value.refScript // look for ref script if any
+      value: Value.lovelaces(kupoRes[0].value.coins) // parse kupo value
+      // datum: unknown, // parse kupo datum 
+      // refScript: unknown // look for ref script if any
     }
   });
-  console.log("outputs", outputs);
+  // console.log("outputs", outputs);
   
+  // console.log("address",  Address.fromString( kupoRes[0].address))
+
   try{
-    txBuilder.buildSync({inputs, changeAddress, outputs});
+    txBuilder.buildSync({ inputs: [inputs], changeAddress, outputs: [outputs] });
   }catch( error ){
     console.log("txBuilder.buildSync", error);
   } 
