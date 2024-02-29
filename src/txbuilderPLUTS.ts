@@ -26,6 +26,7 @@ import {
   isITxOut,
   isIUTxO,
   ITxBuildInput,
+  TxOut,
 } from "@harmoniclabs/plu-ts";
 import { decrypt, encrypt } from "./crypto";
 import { koiosAPI, kupoAPI, genKeys } from "./utils.ts";
@@ -124,15 +125,15 @@ const testTxFunction = async () => {
   #############################d############################################################################
   */
   const inputsCbor: any = cbors.map(UTxO.fromCbor); // UTxO[]
-  console.log("inputs", inputsCbor);
-
+  // console.log("inputs", inputsCbor);
+  const inputsCborParsed = inputsCbor.map((utxo: any) => ({ utxo: utxo }));
   /*
   ##########################################################################################################
   Use when using UTXO info from other sources like Kupo indexer or BLockfrost
   #############################d############################################################################
   */
   let kupoRes: any = await kupoAPI(`matches/${JSON.parse(keys).baseAddress_bech32}?unspent`);
-  // console.log("kupoRes", kupoRes[0].value.coins);
+  // console.log("kupoRes", kupoRes[0].value);
 
   // for now will just pick first utxo object from array
 
@@ -149,6 +150,10 @@ const testTxFunction = async () => {
     },
   });
   // console.log("utxoInputs", utxo);
+
+  const inputsKupoArray: any = [inputsKupo];
+  const inputsKupoParsed = inputsKupoArray.map((utxo: any) => ({ utxo: utxo }));
+  // console.log("inputsKupoParsed", inputsKupoParsed[0].utxo.resolved);
   /*
   ##########################################################################################################
   Change address: address that will receive whats left over from spent UTXOS.
@@ -162,28 +167,26 @@ const testTxFunction = async () => {
   receiving Address: address that will receive the goods.
   #############################d############################################################################
   */
-  const receivingAddress = "addr1qyfsw69quwgm33mmu4s9spefajf88ylx3zv3j2gjnesf5jasj0cyfdml97cnecvz3j25kxzc4j0hdy67wn3er3p9teeq6ahdpn";
+  const receivingAddress = "addr1q9shhjkju8aw2fpt4ttdnzrqcdacaegpglfezen33kq9l2wcdqua0w5yj7d8thpulynjly2yrhwxvdhtrxqjpmy60uqs4h7cyp";
 
   /*
   ##########################################################################################################
   Creating outputs for receiving address
   #############################d############################################################################
   */
-
-  const outputs: any = {
-    resolved: {
-      address: Address.fromString(kupoRes[0].address),
-      value: Value.lovelaces(kupoRes[0].value.coins), // parse kupo value
-      // datum: unknown, // parse kupo datum
-      // refScript: unknown // look for ref script if any
-    },
-  };
+  const outputs: any = new TxOut({
+    address: Address.fromString(receivingAddress),
+    value: Value.lovelaces(1000000), // parse kupo value
+    // datum: [], // parse kupo datum
+    // refScript: [] // look for ref script if any
+  });
   // console.log("outputs", outputs);
-
   // console.log("address",  Address.fromString( kupoRes[0].address))
-
+  const outputsArray: any = [outputs];
   try {
-    txBuilder.buildSync({ inputs: [inputsCbor], changeAddress });
+    txBuilder.buildSync({ inputs: inputsKupoParsed, changeAddress, outputs: outputsArray });
+    txBuilder.build({ inputs: inputsCborParsed, changeAddress, outputs: outputsArray });
+    console.log("txBuilder", txBuilder);
   } catch (error) {
     console.log("txBuilder.buildSync", error);
   }
