@@ -123,8 +123,8 @@ const testTxFunction = async () => {
   Constructing UTxO instances from CBORs gathered through CIP30 getUtxos() method
   #############################d############################################################################
   */
-  // const inputs = cbors.map( UTxO.fromCbor ); // UTxO[]
-  // console.log("inputs", inputs[0].resolved.value);
+  const inputsCbor: any = cbors.map(UTxO.fromCbor); // UTxO[]
+  console.log("inputs", inputsCbor);
 
   /*
   ##########################################################################################################
@@ -136,7 +136,7 @@ const testTxFunction = async () => {
 
   // for now will just pick first utxo object from array
 
-  const inputs: any = new UTxO({
+  const inputsKupo: any = new UTxO({
     utxoRef: {
       id: kupoRes[0].transaction_id,
       index: kupoRes[0].output_index,
@@ -148,7 +148,7 @@ const testTxFunction = async () => {
       // refScript: [] // look for ref script if any
     },
   });
-  // console.log("inputs", inputs);
+  // console.log("utxoInputs", utxo);
   /*
   ##########################################################################################################
   Change address: address that will receive whats left over from spent UTXOS.
@@ -170,24 +170,20 @@ const testTxFunction = async () => {
   #############################d############################################################################
   */
 
-  const outputs = new UTxO({
-    utxoRef: {
-      id: kupoRes[0].transaction_id,
-      index: kupoRes[0].output_index,
-    },
+  const outputs: any = {
     resolved: {
       address: Address.fromString(kupoRes[0].address),
       value: Value.lovelaces(kupoRes[0].value.coins), // parse kupo value
       // datum: unknown, // parse kupo datum
       // refScript: unknown // look for ref script if any
     },
-  });
-  console.log("outputs", outputs);
+  };
+  // console.log("outputs", outputs);
 
   // console.log("address",  Address.fromString( kupoRes[0].address))
 
   try {
-    txBuilder.buildSync({ inputs: [inputs], changeAddress });
+    txBuilder.buildSync({ inputs: [inputsCbor], changeAddress });
   } catch (error) {
     console.log("txBuilder.buildSync", error);
   }
