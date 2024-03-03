@@ -224,7 +224,10 @@ export const metadataCbortoJSON = async (cborString: string) => {
 Take cardano POlicy.Asset and split into two parts
 #############################d############################################################################
 */
-export const splitAsset = (asset: string) => {
+
+export const fromHexString = (hexString: any) => Uint8Array.from(hexString.match(/.{1,2}/g).map((byte: any) => parseInt(byte, 16)));
+
+export const splitAsset = (asset: any) => {
   return asset.split(".");
 };
 
