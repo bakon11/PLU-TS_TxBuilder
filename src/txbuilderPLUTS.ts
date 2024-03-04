@@ -28,12 +28,9 @@ import {
   ITxBuildInput,
   TxOut,
 } from "@harmoniclabs/plu-ts";
-import { decrypt, encrypt } from "./crypto";
 import { koiosAPI, kupoAPI, genKeys, a2hex, splitAsset, fromHexString, fromHex } from "./utils.ts";
-import * as fs from "fs";
-import { Datum } from "@dcspark/cardano-multiplatform-lib-nodejs";
 
-const constructKoiosProtocolParams = async (protocolParamsKoiosRes: any) => {
+export const constructKoiosProtocolParams = async (protocolParamsKoiosRes: any) => {
   /*
   ##########################################################################################################
   Using current epoch protocol parmaters from Koios API V1 to create a new TxBuilder instance
@@ -74,136 +71,123 @@ const constructKoiosProtocolParams = async (protocolParamsKoiosRes: any) => {
   return defaultProtocolParameters;
 };
 
-const testTxFunction = async () => {
-  /*
-  ##########################################################################################################
-  Keys.json file contianing all addresses and encrypted private keys, created with the genKeys() function.
-  Look at example keysExample.json file
-  #############################d############################################################################
-  */
-  let keys = fs.readFileSync("keys.json", "utf8");
-
-  /*
-  ##########################################################################################################
-  Fetching ProtocolParams from Koios API V1
-  #############################d############################################################################
-  */
-  const protocolParamsKoiosRes = await koiosAPI("epoch_params");
-  //console.log("protocolParamsKoiosRes", protocolParamsKoiosRes[0]);
-
-  /*
-  ##########################################################################################################
-  Parse PraotocolParams from Koios API V1
-  #############################d############################################################################
-  */
-  const defaultProtocolParameters = await constructKoiosProtocolParams(protocolParamsKoiosRes);
-
+export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputs: any, utxoInputsCBOR: any, utxoOutputs: any, changeAddress: any) => {
+  // console.log(protocolParameters);
+  // console.log(utxoInputs[0].value);
+  // console.log(utxoInputsCBOR);
+  // console.log(utxoOutputs);
+  // console.log(changeAddress);
   /*
   ##########################################################################################################
   Constructing TxBuilder instance
   #############################d############################################################################
   */
-  const txBuilder = new TxBuilder(defaultProtocolParameters);
+  const txBuilder = new TxBuilder(protocolParameters);
   // console.log("txBuilder", txBuilder.protocolParamters);
-
-  /*
-  ##########################################################################################################
-  CIP30 getUtxos() method CBORs example for now.
-  ##########################################################################################################
-  */
-  let cbors = [
-    "828258201c9be6d02e59e5f944eb630fdd5fcf26c5a17f8c03ebd5bcf32e6c8e008310890182583901130768a0e391b8c77be560580729ec927393e688991929129e609a4bb093f044b77f2fb13ce1828c954b1858ac9f76935e74e391c4255e721a00114a4c",
-    "82825820f486c85056d208a423af09a96f3744746e304a77b7c61d955c3fe8afeb1534730082583901130768a0e391b8c77be560580729ec927393e688991929129e609a4bb093f044b77f2fb13ce1828c954b1858ac9f76935e74e391c4255e72821a012df827a2581cb812d5a466604bcc25d2313183c387cebf52302738b5a178daf146f0a6494d616e64616c6123311864494d616e64616c6123321864494d616e64616c6123331864494d616e64616c6123341864494d616e64616c6123351864494d616e64616c6123361864581cb88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12aa8494d65726b61626123301864494d65726b61626123311864494d65726b61626123321864494d65726b61626123331864494d65726b616261233418644a4d65726b616261232d3118644a4d65726b616261232d3218644a4d65726b616261232d331864",
-  ];
 
   /*
   ##########################################################################################################
   Constructing UTxO instances from CBORs gathered through CIP30 getUtxos() method
   #############################d############################################################################
   */
-  const inputsCbor: any = cbors.map(UTxO.fromCbor); // UTxO[]
+  const inputsCbor: any = utxoInputsCBOR.map(UTxO.fromCbor); // UTxO[]
   // console.log("inputs", inputsCbor);
   const inputsCborParsed = inputsCbor.map((utxo: any) => ({ utxo: utxo }));
   // console.log("inputsCborParsed", inputsCborParsed[1].utxo.resolved.value.lovelaces);
-  /*
-  ##########################################################################################################
-  Use when using UTXO info from other sources like Kupo indexer or BLockfrost
-  #############################d############################################################################
-  */
-  let kupoRes: any = await kupoAPI(`matches/${JSON.parse(keys).baseAddress_bech32}?unspent`);
-  // console.log("kupoRes", kupoRes[0]);
-
-  // for now will just pick first utxo object from array
-  let kupoAssets: any;
-  // kupoAssets = Value.singleAsset( new Hash28("<hosky policy>"), fromAscii("HOSKY"), 1_000_000_000 )
-  Object.entries(kupoRes[0].value).map(([key, value]: any) => {
-    key === "coins" && Value.add(Value.lovelaces(kupoRes[0].value.coins), kupoAssets);
-    key === "assets" &&
-      Object.entries(value).map(([asset, quantity]: any) => {
-        let newAsset = Value.singleAsset(new Hash28(splitAsset(asset)[0]), fromHex(splitAsset(asset)[1]), quantity);
-        Value.add(newAsset, kupoAssets);
-      });
-  });
-  console.log("kupoAssets", kupoAssets);
-
-  const inputsKupo: any = new UTxO({
-    utxoRef: {
-      id: kupoRes[0].transaction_id,
-      index: kupoRes[0].output_index,
-    },
-    resolved: {
-      address: Address.fromString(kupoRes[0].address),
-      value: kupoAssets,
-
-      // Value.lovelaces(kupoRes[0].value.coins), // parse kupo
-      // datum: [], // parse kupo datum
-      // refScript: [] // look for ref script if any
-    },
-  });
-  // console.log("utxoInputs", utxo);
-
-  const inputsKupoArray: any = [inputsKupo];
-  const inputsKupoParsed = inputsKupoArray.map((utxo: any) => ({ utxo: utxo }));
-  // console.log("inputsKupoParsed", inputsKupoParsed[0].utxo.resolved.value);
-  /*
-  ##########################################################################################################
-  Change address: address that will receive whats left over from spent UTXOS.
-  #############################d############################################################################
-  */
-  const changeAddress = JSON.parse(keys).baseAddress_bech32;
-  // console.log("changeAddress", changeAddress);
 
   /*
   ##########################################################################################################
-  receiving Address: address that will receive the goods.
+  Generate inputs from utxoInputs this one is for Kupo
   #############################d############################################################################
   */
-  const receivingAddress = "addr1q9shhjkju8aw2fpt4ttdnzrqcdacaegpglfezen33kq9l2wcdqua0w5yj7d8thpulynjly2yrhwxvdhtrxqjpmy60uqs4h7cyp";
+  let inputs: any = [];
+  Promise.all(
+    await utxoInputs.map(async (utxo: any) => {
+      // console.log("adding inputs")
+      inputs.push( new UTxO({
+        utxoRef: {
+          id: utxo.transaction_id,
+          index:utxo.output_index,
+        },
+        resolved: {
+          address: Address.fromString(utxo.address),
+          value: await createInputValues(utxo),
+    
+          // Value.lovelaces(kupoRes[0].value.coins), // parse kupo
+          // datum: [], // parse kupo datum
+          // refScript: [] // look for ref script if any
+        },
+      }));
+      // console.log("utxoInputs", inputs);
+    })
+  );
+  // console.log("utxoInputs", inputs);
+  const inputsKupoParsed = inputs.map((utxo: any) => ({ utxo: utxo }));
+  // console.log("inputsKupoParsed", inputsKupoParsed);
 
   /*
   ##########################################################################################################
   Creating outputs for receiving address
   #############################d############################################################################
   */
-  const outputs: any = new TxOut({
-    address: Address.fromString(receivingAddress),
-    value: Value.lovelaces(1000000), // parse kupo value
-    // datum: [], // parse kupo datum
-    // refScript: [] // look for ref script if any
-  });
+  let outputs: any = [];
+  Promise.all(  
+    await utxoOutputs.map(async (output: any ) => {
+      outputs.push(new TxOut({
+        address: Address.fromString(output.address),
+        value: await createOutputValues(output), // parse kupo value
+        // datum: [], // parse kupo datum
+        // refScript: [] // look for ref script if any
+      }));
+    })
+  );
   // console.log("outputs", outputs);
-  // console.log("address",  Address.fromString( kupoRes[0].address))
-  const outputsArray: any = [outputs];
+  
   try {
-    txBuilder.buildSync({ inputs: inputsKupoParsed, changeAddress, outputs: outputsArray });
-
+    txBuilder.buildSync({ inputs: inputsKupoParsed, changeAddress, outputs: outputs });
     // console.log("txBuilder", txBuilder);
   } catch (error) {
     console.log("txBuilder.buildSync", error);
   }
 };
 
-testTxFunction();
+const createInputValues = async (kupoValues: any) => {
+  // console.log("kupoValues", kupoValues);
+  // for now will just pick first utxo object from array
+  let kupoAssets: any = [];
+  Promise.all(
+    Object.entries(kupoValues.value).map(([key, value]: any) => {
+      // console.log("key", key);
+      // console.log("value", value);
+      key === "coins" && ( kupoAssets.push( Value.lovelaces(kupoValues.value.coins)));
+      key === "assets" &&  Object.entries(value).length > 0 &&
+        Object.entries(value).map(([asset, quantity]: any) => {    
+          let assetNew = Value.singleAsset(new Hash28(splitAsset(asset)[0]), fromHex(splitAsset(asset)[1]), quantity)
+          kupoAssets.push(assetNew);
+        });
+    })
+  );
+  // console.log("kupoAssets", kupoAssets);
+  return( kupoAssets.reduce(Value.add));
+};
+
+const createOutputValues = async (output: any) => {
+  // console.log("output", output);
+  let outputAssets: any = [];
+  Promise.all(
+    Object.entries(output.value).map(([key, value]: any) => {
+      // console.log("key", key);
+      // console.log("value", value);
+      key === "coins" && ( outputAssets.push( Value.lovelaces(output.value.coins)));
+      key === "assets" &&  Object.entries(value).length > 0 &&
+        Object.entries(value).map(([asset, quantity]: any) => {    
+          let assetNew = Value.singleAsset(new Hash28(splitAsset(asset)[0]), fromHex(splitAsset(asset)[1]), quantity)
+          outputAssets.push(assetNew);
+        });
+    })
+  );
+  return( outputAssets.reduce(Value.add));
+};
 
 /*
 where you see "entry" in the name generates a value for the array
