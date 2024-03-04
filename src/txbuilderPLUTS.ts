@@ -27,6 +27,9 @@ import {
   isIUTxO,
   ITxBuildInput,
   TxOut,
+  PrivateKey,
+  
+  
 } from "@harmoniclabs/plu-ts";
 import { koiosAPI, kupoAPI, genKeys, a2hex, splitAsset, fromHexString, fromHex } from "./utils.ts";
 
@@ -71,12 +74,13 @@ export const constructKoiosProtocolParams = async (protocolParamsKoiosRes: any) 
   return defaultProtocolParameters;
 };
 
-export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputs: any, utxoInputsCBOR: any, utxoOutputs: any, changeAddress: any) => {
+export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsKupo: any, utxoInputsCBOR: any, utxoOutputs: any, changeAddress: any, requiredSigners: any) => {
   // console.log(protocolParameters);
   // console.log(utxoInputs[0].value);
   // console.log(utxoInputsCBOR);
   // console.log(utxoOutputs);
   // console.log(changeAddress);
+  console.log("requiredSigners", requiredSigners);
   /*
   ##########################################################################################################
   Constructing TxBuilder instance
@@ -97,12 +101,12 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputs:
 
   /*
   ##########################################################################################################
-  Generate inputs from utxoInputs this one is for Kupo
+  Generate inputs from utxoInputsKupo
   #############################d############################################################################
   */
   let inputs: any = [];
   Promise.all(
-    await utxoInputs.map(async (utxo: any) => {
+    await utxoInputsKupo.map(async (utxo: any) => {
       // console.log("adding inputs")
       inputs.push( new UTxO({
         utxoRef: {
@@ -118,10 +122,10 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputs:
           // refScript: [] // look for ref script if any
         },
       }));
-      // console.log("utxoInputs", inputs);
+      // console.log("utxoInputsKupo", utxoInputsKupo);
     })
   );
-  // console.log("utxoInputs", inputs);
+  // console.log("utxoInputsKupo", utxoInputsKupo);
   const inputsKupoParsed = inputs.map((utxo: any) => ({ utxo: utxo }));
   // console.log("inputsKupoParsed", inputsKupoParsed);
 
@@ -130,10 +134,10 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputs:
   Creating outputs for receiving address
   #############################d############################################################################
   */
-  let outputs: any = [];
+  let outputsParsed: any = [];
   Promise.all(  
     await utxoOutputs.map(async (output: any ) => {
-      outputs.push(new TxOut({
+      outputsParsed.push(new TxOut({
         address: Address.fromString(output.address),
         value: await createOutputValues(output), // parse kupo value
         // datum: [], // parse kupo datum
@@ -141,25 +145,35 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputs:
       }));
     })
   );
-  // console.log("outputs", outputs);
+  // console.log("outputsParsed", outputsParsed);
   
   try {
-    txBuilder.buildSync({ inputs: inputsKupoParsed, changeAddress, outputs: outputs });
-    // console.log("txBuilder", txBuilder);
+    let builtTx = txBuilder.buildSync({ inputs: inputsKupoParsed, changeAddress, outputs: outputsParsed });
+    // console.log("builtTx fee", builtTx.body.fee);
+    // console.log("builtHash", builtTx.hash);
+    // console.log("minUtxo", txBuilder.getMinimumOutputLovelaces( builtTx.hash));
+    let txSigned: any = builtTx.signWith(requiredSigners);
+   
+    //console.log("txSigned", txSigned);
   } catch (error) {
     console.log("txBuilder.buildSync", error);
   }
 };
 
-const createInputValues = async (kupoValues: any) => {
-  // console.log("kupoValues", kupoValues);
+/*
+##########################################################################################################
+This function will create UTXO input values like: UTXO lovelaces and UTXO assets for PLU-TS
+#############################d############################################################################
+*/
+const createInputValues = async (kupoUtxo: any) => {
+  // console.log("kupoUtxo", kupoUtxo);
   // for now will just pick first utxo object from array
   let kupoAssets: any = [];
   Promise.all(
-    Object.entries(kupoValues.value).map(([key, value]: any) => {
+    Object.entries(kupoUtxo.value).map(([key, value]: any) => {
       // console.log("key", key);
       // console.log("value", value);
-      key === "coins" && ( kupoAssets.push( Value.lovelaces(kupoValues.value.coins)));
+      key === "coins" && ( kupoAssets.push( Value.lovelaces(kupoUtxo.value.coins)));
       key === "assets" &&  Object.entries(value).length > 0 &&
         Object.entries(value).map(([asset, quantity]: any) => {    
           let assetNew = Value.singleAsset(new Hash28(splitAsset(asset)[0]), fromHex(splitAsset(asset)[1]), quantity)
@@ -171,6 +185,22 @@ const createInputValues = async (kupoValues: any) => {
   return( kupoAssets.reduce(Value.add));
 };
 
+/*
+##########################################################################################################
+This function will create UTXO outputs meaning sending to someone from following Object
+{
+  address: "addr1q9shhjkju8aw2fpt4ttdnzrqcdacaegpglfezen33kq9l2wcdqua0w5yj7d8thpulynjly2yrhwxvdhtrxqjpmy60uqs4h7cyp",
+  value: {
+    coins: 1000000,
+    assets: {
+      "b88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12a.4d65726b616261232d33": 1,
+      "b88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12a.4d65726b616261232d32": 1,
+      "b812d5a466604bcc25d2313183c387cebf52302738b5a178daf146f0.4d616e64616c612332": 1
+    }
+  }
+}
+#############################d############################################################################
+*/
 const createOutputValues = async (output: any) => {
   // console.log("output", output);
   let outputAssets: any = [];
@@ -190,6 +220,47 @@ const createOutputValues = async (output: any) => {
 };
 
 /*
+builtTx Tx {
+  body: TxBody {
+    inputs: [ [TxIn], [TxIn] ],
+    outputs: [ [TxOut], [TxOut] ],
+    fee: [Getter/Setter],
+    ttl: undefined,
+    certs: undefined,
+    withdrawals: undefined,
+    protocolUpdate: undefined,
+    auxDataHash: undefined,
+    validityIntervalStart: undefined,
+    mint: undefined,
+    scriptDataHash: undefined,
+    collateralInputs: undefined,
+    requiredSigners: undefined,
+    network: 'mainnet',
+    collateralReturn: undefined,
+    refInputs: undefined,
+    hash: [Getter/Setter]
+  },
+  witnesses: TxWitnessSet {
+    vkeyWitnesses: [Getter/Setter],
+    bootstrapWitnesses: [Getter/Setter],
+    datums: [Getter/Setter],
+    nativeScripts: [Getter/Setter],
+    plutusV1Scripts: [Getter/Setter],
+    plutusV2Scripts: [Getter/Setter],
+    redeemers: [Getter/Setter],
+    isComplete: [Getter/Setter],
+    addVKeyWitness: [Function (anonymous)]
+  },
+  isScriptValid: true,
+  auxiliaryData: undefined,
+  hash: [Getter/Setter],
+  addVKeyWitness: [Function (anonymous)],
+  signWith: [Function (anonymous)],
+  signWithCip30Wallet: [Function (anonymous)],
+  isComplete: [Getter/Setter]
+}
+*/
+/*
 where you see "entry" in the name generates a value for the array
 if it has no "entry" it generates a value only with that entry
 exapmple 
@@ -197,6 +268,10 @@ exapmple
 the Value class has an add static method
 so you just do Value.add( assets1, assets2)
 and you have a new Value instance
+
+singing tx can be done with signWith method on a constructed tx
+[9:30 AM]
+signWith expects the private key
 
 export class Value {
     // lots of stuff here ...

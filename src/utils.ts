@@ -104,9 +104,9 @@ export const genKeys = async () => {
   const seedPhrase = JSON.parse(keys).seedPhrase;
   const walletPassword = JSON.parse(keys).walletPassword;
   // const seedPhrase = await genSeedPhrase();
-  console.log("seedPhrase", seedPhrase);
+  // console.log("seedPhrase", seedPhrase);
   const entropy = await seedPhraseToEntropy(seedPhrase);
-  console.log("entropy", entropy);
+  // console.log("entropy", entropy);
   const rootXPRV: any = await genXPRV(entropy);
   // console.log("rootXPRV", rootXPRV.to_bech32());
   // console.log("rootXPUB", rootXPRV.to_public().to_bech32());
@@ -141,14 +141,15 @@ export const genKeys = async () => {
     accountKeyPub: accountAddressKeyPrv.to_public().to_bech32(),
     accountAddressKeyPrv: await encrypt(walletPassword, accountAddressKeyPrv.to_bech32()),
     accountAddressKeyPub: accountAddressKeyPrv.to_public().to_bech32(),
+    accountAddressKeyPubHash: toHex(accountAddressKeyPrv.to_public().to_bech32()),
     accountStakeKeyPrv: await encrypt(walletPassword, accountStakeKeyPrv.to_bech32()),
     accountStakeKeyPub: accountStakeKeyPrv.to_public().to_bech32(),
     baseAddress_bech32: baseAddress.to_address().to_bech32(),
-    baseAddress_hex: baseAddress.to_address().to_hex(),
+    baseAddress_hash: toHex(baseAddress.to_address().to_bytes()),
     stakeAddress: stakeAddress.to_address().to_bech32(),
   };
   console.log("new keys: ", newKeys);
-  fs.writeFileSync("keys.json", JSON.stringify({ ...newKeys }, null, 2));
+  // fs.writeFileSync("keys.json", JSON.stringify({ ...newKeys }, null, 2));
 };
 
 /*

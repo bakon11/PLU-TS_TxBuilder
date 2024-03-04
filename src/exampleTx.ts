@@ -1,6 +1,7 @@
 import { constructKoiosProtocolParams, txBuilder_PLUTS } from "./txbuilderPLUTS.ts";
-import { decrypt, encrypt } from "./crypto.ts";
-import { koiosAPI, kupoAPI, genKeys, a2hex, splitAsset, fromHexString, fromHex } from "./utils.ts";
+import { koiosAPI, kupoAPI, genKeys, a2hex, splitAsset, fromHexString, fromHex, toHex, hex2a } from "./utils.ts";
+import { genSeedPhrase, seedPhraseToEntropy, genXPRV, genXPUB, genAccountKeyPrv, genAccountKeyPub, genAddressSigningKey, genStakeKey, genBaseAddr, genRewardAddr, encrypt, decrypt } from "./crypto.ts";
+
 import * as fs from "fs";
 
 const buildTx = async () => {
@@ -72,8 +73,31 @@ const buildTx = async () => {
     }
   ];
 
-  await txBuilder_PLUTS(defaultProtocolParameters, kupoInputs, cborInputs, utxoOutputs, changeAddress);
+  const seedPhrase = JSON.parse(keys).seedPhrase;
+  const walletPassword = JSON.parse(keys).walletPassword;
+  // const seedPhrase = await genSeedPhrase();
+  // console.log("seedPhrase", seedPhrase);
+  const entropy = await seedPhraseToEntropy(seedPhrase);
+  // console.log("entropy", entropy);
+  const rootXPRV: any = await genXPRV(entropy);
+  // console.log("rootXPRV", rootXPRV.to_bech32());
+  // console.log("rootXPUB", rootXPRV.to_public().to_bech32());
+  console.log("creating wallet/account/address");
+  const accountKeyPrv: any = await genAccountKeyPrv(rootXPRV, 1852, 1815, 0);
+  // console.log("accountKeyPrv", await encrypt( walletPassword, accountKeyPrv.to_bech32() ));
+  // let keyBech = accountKeyPrv.to_bech32();
+  // console.log("accountKeyPrv", keyBech.to_raw_key());
+  // console.log("accountKeyPub", accountKeyPrv.to_public().to_bech32());
+  const accountAddressKeyPrv: any = await genAddressSigningKey(accountKeyPrv, 0);
+  const requiredSigners: any = accountKeyPrv;
+
+
+  // const requiredSigners: any = await decrypt( JSON.parse(keys).walletPassword ,JSON.parse(keys).accountAddressKeyPrv);
+  //const requiredSigners = JSON.parse(keys).baseAddress_bech32;
+
+  await txBuilder_PLUTS(defaultProtocolParameters, kupoInputs, cborInputs, utxoOutputs, changeAddress, requiredSigners);
 
 };
 
 buildTx();
+// genKeys();
