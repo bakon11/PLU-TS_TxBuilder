@@ -78,6 +78,7 @@ const buildTx = async () => {
   /*
   ##########################################################################################################
   For example purposes will regenerate keys from seed and entropy contained in the keys.json file.
+  (check keys.json.ecample file for reference)
   However this is not secure and will be corrected in the future.
   #############################d############################################################################
   */
