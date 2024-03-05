@@ -1,4 +1,4 @@
-import * as CSLwasm from "@dcspark/cardano-multiplatform-lib-nodejs";
+import * as CLMwasm from "@dcspark/cardano-multiplatform-lib-nodejs";
 import { mnemonicToEntropy, generateMnemonic, validateMnemonic } from "bip39";
 import CryptoJS from "crypto-js";
 
@@ -34,7 +34,7 @@ export const seedPhraseToEntropy = async (seed_phrase: string) => {
 //Root private key to create accounts
 export const genXPRV = async (entropy: any) => {
   try {
-    return CSLwasm.Bip32PrivateKey.from_bip39_entropy(Buffer.from(entropy, "hex"), Buffer.from(""));
+    return CLMwasm.Bip32PrivateKey.from_bip39_entropy(Buffer.from(entropy, "hex"), Buffer.from(""));
   } catch (error) {
     console.log(error);
     return error;
@@ -116,10 +116,10 @@ export const genStakeKey = async (accountKeyPrv: any, index?: number) => {
 // base address with staking key
 export const genBaseAddr = async (network: number, addressPubKey: any, stakeKey: any) => {
   try {
-    const baseAddr = CSLwasm.BaseAddress.new(
+    const baseAddr = CLMwasm.BaseAddress.new(
       network, // 0 testnet || 1 mainnet
-      CSLwasm.StakeCredential.from_keyhash(addressPubKey.to_raw_key().hash()),
-      CSLwasm.StakeCredential.from_keyhash(stakeKey.to_raw_key().hash())
+      CLMwasm.StakeCredential.from_keyhash(addressPubKey.to_raw_key().hash()),
+      CLMwasm.StakeCredential.from_keyhash(stakeKey.to_raw_key().hash())
     );
     return baseAddr;
   } catch (error) {
@@ -131,9 +131,9 @@ export const genBaseAddr = async (network: number, addressPubKey: any, stakeKey:
 // enterprise address without staking ability, for use by exchanges/etc
 export const genEnterpriseAddr = async (network: any, addressPubKey: any) => {
   try {
-    const enterpriseAddr = CSLwasm.EnterpriseAddress.new(
+    const enterpriseAddr = CLMwasm.EnterpriseAddress.new(
       network, // 0 testnet || 1 mainnet
-      CSLwasm.StakeCredential.from_keyhash(addressPubKey.to_raw_key().hash())
+      CLMwasm.StakeCredential.from_keyhash(addressPubKey.to_raw_key().hash())
     );
     return enterpriseAddr;
   } catch (error) {
@@ -145,13 +145,13 @@ export const genEnterpriseAddr = async (network: any, addressPubKey: any) => {
 // pointer address - similar to Base address but can be shorter, see formal spec for explanation
 export const genPointerAddr = async (network: number, addressPubKey: any) => {
   try {
-    const ptrAddr = CSLwasm.PointerAddress.new(
+    const ptrAddr = CLMwasm.PointerAddress.new(
       network, // 0 testnet || 1 mainnet
-      CSLwasm.StakeCredential.from_keyhash(addressPubKey.to_raw_key().hash()),
-      CSLwasm.Pointer.new(
-        CSLwasm.BigNum.from_str("100"), // slot
-        CSLwasm.BigNum.from_str("2"), // tx index in slot
-        CSLwasm.BigNum.from_str("0") // cert indiex in tx
+      CLMwasm.StakeCredential.from_keyhash(addressPubKey.to_raw_key().hash()),
+      CLMwasm.Pointer.new(
+        CLMwasm.BigNum.from_str("100"), // slot
+        CLMwasm.BigNum.from_str("2"), // tx index in slot
+        CLMwasm.BigNum.from_str("0") // cert indiex in tx
       )
     );
     return ptrAddr;
@@ -164,9 +164,9 @@ export const genPointerAddr = async (network: number, addressPubKey: any) => {
 // reward address - used for withdrawing accumulated staking rewards
 export const genRewardAddr = async (network: number, stakeKey: any) => {
   try {
-    const rewardAddr = CSLwasm.RewardAddress.new(
+    const rewardAddr = CLMwasm.RewardAddress.new(
       network, // 0 testnet || 1 mainnet
-      CSLwasm.StakeCredential.from_keyhash(stakeKey.to_raw_key().hash())
+      CLMwasm.StakeCredential.from_keyhash(stakeKey.to_raw_key().hash())
     );
     return rewardAddr;
   } catch (error) {

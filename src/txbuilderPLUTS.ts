@@ -9,6 +9,7 @@ import {
   CertificateType,
   Hash28,
   Hash32,
+  Hash,
   PoolKeyHash,
   PoolParams,
   PubKeyHash,
@@ -29,9 +30,10 @@ import {
   TxOut,
   PrivateKey,
   
-  
 } from "@harmoniclabs/plu-ts";
-import { koiosAPI, kupoAPI, genKeys, a2hex, splitAsset, fromHexString, fromHex } from "./utils.ts";
+import { koiosAPI, kupoAPI, genKeys, a2hex, splitAsset, fromHexString, fromHex, toHex } from "./utils.ts";
+import * as CLMwasm from "@dcspark/cardano-multiplatform-lib-nodejs";
+import * as CSLwasm from "@emurgo/cardano-serialization-lib-nodejs";
 
 export const constructKoiosProtocolParams = async (protocolParamsKoiosRes: any) => {
   /*
@@ -74,13 +76,14 @@ export const constructKoiosProtocolParams = async (protocolParamsKoiosRes: any) 
   return defaultProtocolParameters;
 };
 
-export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsKupo: any, utxoInputsCBOR: any, utxoOutputs: any, changeAddress: any, requiredSigners: any) => {
+export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsKupo: any, utxoInputsCBOR: any, utxoOutputs: any, changeAddress: any, privateKeyHex: any) => {
   // console.log(protocolParameters);
   // console.log(utxoInputs[0].value);
   // console.log(utxoInputsCBOR);
   // console.log(utxoOutputs);
   // console.log(changeAddress);
-  console.log("requiredSigners", requiredSigners);
+
+
   /*
   ##########################################################################################################
   Constructing TxBuilder instance
@@ -148,13 +151,13 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsK
   // console.log("outputsParsed", outputsParsed);
   
   try {
-    let builtTx = txBuilder.buildSync({ inputs: inputsKupoParsed, changeAddress, outputs: outputsParsed });
+    let builtTx: any = txBuilder.buildSync({ inputs: inputsKupoParsed, changeAddress, outputs: outputsParsed });
     // console.log("builtTx fee", builtTx.body.fee);
     // console.log("builtHash", builtTx.hash);
     // console.log("minUtxo", txBuilder.getMinimumOutputLovelaces( builtTx.hash));
-    let txSigned: any = builtTx.signWith(requiredSigners);
-   
-    //console.log("txSigned", txSigned);
+    const singingKey: any = new Hash(privateKeyHex);
+    let txSigned: any = await builtTx.signWith(singingKey);
+    console.log("txSigned", txSigned);
   } catch (error) {
     console.log("txBuilder.buildSync", error);
   }
