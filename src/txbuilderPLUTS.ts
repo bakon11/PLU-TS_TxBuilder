@@ -223,6 +223,11 @@ const createOutputValues = async (output: any) => {
 };
 
 /*
+##########################################################################################################
+Ignore all this, just refrence while building this.
+#############################d############################################################################
+*/
+/*
 builtTx Tx {
   body: TxBody {
     inputs: [ [TxIn], [TxIn] ],
