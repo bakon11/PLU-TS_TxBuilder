@@ -1,80 +1,6 @@
-import {
-  TxBuilder,
-  CborPositiveRational,
-  defaultV1Costs,
-  defaultV2Costs,
-  ExBudget,
-  Address,
-  Certificate,
-  CertificateType,
-  Hash28,
-  Hash32,
-  Hash,
-  PoolKeyHash,
-  PoolParams,
-  PubKeyHash,
-  Script,
-  ScriptType,
-  StakeAddress,
-  StakeCredentials,
-  StakeValidatorHash,
-  Tx,
-  TxIn,
-  TxMetadata,
-  UTxO,
-  Value,
-  forceTxOutRefStr,
-  isITxOut,
-  isIUTxO,
-  ITxBuildInput,
-  TxOut,
-  PrivateKey,
-  
-} from "@harmoniclabs/plu-ts";
+import { TxBuilder, Address, Hash28, Hash, UTxO, Value, TxOut, dataToCbor } from "@harmoniclabs/plu-ts";
 import { koiosAPI, kupoAPI, genKeys, a2hex, splitAsset, fromHexString, fromHex, toHex } from "./utils.ts";
-import * as CLMwasm from "@dcspark/cardano-multiplatform-lib-nodejs";
-import * as CSLwasm from "@emurgo/cardano-serialization-lib-nodejs";
 
-export const constructKoiosProtocolParams = async (protocolParamsKoiosRes: any) => {
-  /*
-  ##########################################################################################################
-  Using current epoch protocol parmaters from Koios API V1 to create a new TxBuilder instance
-  #############################d############################################################################
-  */
-  const defaultProtocolParameters: any = {
-    txFeePerByte: protocolParamsKoiosRes[0].min_fee_a,
-    txFeeFixed: protocolParamsKoiosRes[0].min_fee_b,
-    maxBlockBodySize: protocolParamsKoiosRes[0].max_block_size,
-    maxTxSize: protocolParamsKoiosRes[0].max_tx_size,
-    maxBlockHeaderSize: protocolParamsKoiosRes[0].max_bh_size,
-    stakeAddressDeposit: Number(protocolParamsKoiosRes[0].key_deposit),
-    stakePoolDeposit: Number(protocolParamsKoiosRes[0].pool_deposit),
-    poolRetireMaxEpoch: protocolParamsKoiosRes[0].max_epoch,
-    stakePoolTargetNum: protocolParamsKoiosRes[0].optimal_pool_count,
-    poolPledgeInfluence: protocolParamsKoiosRes[0].influence,
-    monetaryExpansion: protocolParamsKoiosRes[0].monetary_expand_rate,
-    treasuryCut: protocolParamsKoiosRes[0].treasury_growth_rate,
-    protocolVersion: [protocolParamsKoiosRes[0].protocol_major, protocolParamsKoiosRes[0].protocol_minor],
-    minPoolCost: Number(protocolParamsKoiosRes[0].min_pool_cost),
-    utxoCostPerByte: Number(protocolParamsKoiosRes[0].coins_per_utxo_size),
-    costModels: {
-      PlutusScriptV1: protocolParamsKoiosRes[0].cost_models.PlutusV1,
-      PlutusScriptV2: protocolParamsKoiosRes[0].cost_models.PlutusV2,
-    },
-    executionUnitPrices: [
-      new CborPositiveRational(protocolParamsKoiosRes[0].price_mem * 10000, 100), // mem
-      // protocolParamsKoiosRes[0].price_mem * 100,
-      new CborPositiveRational(protocolParamsKoiosRes[0].price_step * 10000000, 1e5), // cpu
-    ],
-    maxTxExecutionUnits: new ExBudget({ mem: protocolParamsKoiosRes[0].max_tx_ex_mem, cpu: protocolParamsKoiosRes[0].max_tx_ex_steps }),
-    maxBlockExecutionUnits: new ExBudget({ mem: protocolParamsKoiosRes[0].max_block_ex_mem, cpu: protocolParamsKoiosRes[0].max_block_ex_steps }),
-    maxValueSize: protocolParamsKoiosRes[0].max_val_size,
-    collateralPercentage: protocolParamsKoiosRes[0].collateral_percent,
-    maxCollateralInputs: protocolParamsKoiosRes[0].max_collateral_inputs,
-  };
-
-  return defaultProtocolParameters;
-};
 
 export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsKupo: any, utxoInputsCBOR: any, utxoOutputs: any, changeAddress: any, privateKeyHex: any) => {
   // console.log(protocolParameters);
@@ -82,7 +8,6 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsK
   // console.log(utxoInputsCBOR);
   // console.log(utxoOutputs);
   // console.log(changeAddress);
-
 
   /*
   ##########################################################################################################
@@ -119,16 +44,12 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsK
         resolved: {
           address: Address.fromString(utxo.address),
           value: await createInputValues(utxo),
-    
-          // Value.lovelaces(kupoRes[0].value.coins), // parse kupo
           // datum: [], // parse kupo datum
           // refScript: [] // look for ref script if any
         },
       }));
-      // console.log("utxoInputsKupo", utxoInputsKupo);
     })
   );
-  // console.log("utxoInputsKupo", utxoInputsKupo);
   const inputsKupoParsed = inputs.map((utxo: any) => ({ utxo: utxo }));
   // console.log("inputsKupoParsed", inputsKupoParsed);
 
@@ -149,19 +70,35 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsK
     })
   );
   // console.log("outputsParsed", outputsParsed);
-  
+
+  /*
+  ##########################################################################################################
+  Transaction time to live till after slot?
+  #############################d############################################################################
+  */
+  const ttl = 500000000;
+
   try {
-    let builtTx: any = txBuilder.buildSync({ inputs: inputsKupoParsed, changeAddress, outputs: outputsParsed });
+    let builtTx: any = txBuilder.buildSync({ inputs: inputsKupoParsed, changeAddress, outputs: outputsParsed, invalidAfter: ttl});
+    // console.log("builtTx", builtTx.isComplete);
     // console.log("builtTx fee", builtTx.body.fee);
     // console.log("builtHash", builtTx.hash);
+    console.log("witnesses before signing:", builtTx.witnesses.vkeyWitnesses)
     // console.log("minUtxo", txBuilder.getMinimumOutputLovelaces( builtTx.hash));
     const singingKey: any = new Hash(privateKeyHex);
-    let txSigned: any = await builtTx.signWith(singingKey);
-    console.log("txSigned", txSigned);
+    await builtTx.signWith(singingKey);
+    console.log("witnesses after signing:", builtTx.witnesses.vkeyWitnesses)
+    // const txCBor = builtTx;
+    //console.log("txCBor", txCBor);
   } catch (error) {
     console.log("txBuilder.buildSync", error);
-  }
+  };
+  
 };
+
+// const txHex = await Buffer.from(transaction.to_bytes()).toString("hex");
+// const encodedSignedTx = Buffer.from(txSigned.to_bytes()).toString("hex");
+// console.log("encodedSignedTx", encodedSignedTx);
 
 /*
 ##########################################################################################################

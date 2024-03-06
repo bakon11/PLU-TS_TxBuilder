@@ -1,9 +1,8 @@
-import { constructKoiosProtocolParams, txBuilder_PLUTS } from "./txbuilderPLUTS.ts";
+import { txBuilder_PLUTS } from "./txbuilderPLUTS.ts";
 import * as CLMwasm from "@dcspark/cardano-multiplatform-lib-nodejs";
 import * as CSLwasm from "@emurgo/cardano-serialization-lib-nodejs";
-import { koiosAPI, kupoAPI, genKeys, a2hex, splitAsset, fromHexString, fromHex, toHex, hex2a } from "./utils.ts";
+import { koiosAPI, kupoAPI, genKeys, a2hex, splitAsset, fromHexString, fromHex, toHex, hex2a, constructKoiosProtocolParams, ogmiosHealth } from "./utils.ts";
 import { genSeedPhrase, seedPhraseToEntropy, genXPRV, genXPUB, genAccountKeyPrv, genAccountKeyPub, genAddressSigningKey, genStakeKey, genBaseAddr, genRewardAddr, encrypt, decrypt } from "./crypto.ts";
-
 import * as fs from "fs";
 
 const buildTx = async () => {
@@ -21,7 +20,15 @@ const buildTx = async () => {
   #############################d############################################################################
   */
   const protocolParamsKoiosRes = await koiosAPI("epoch_params");
-  //console.log("protocolParamsKoiosRes", protocolParamsKoiosRes[0]);
+  // console.log("protocolParamsKoiosRes", protocolParamsKoiosRes[0]);
+  
+  /*
+  ##########################################################################################################
+  Parse PraotocolParams from Koios API V1
+  #############################d############################################################################
+  */
+  // const ogmiosHealthRes = await ogmiosHealth();
+  // console.log("ogmiosHealthRes", ogmiosHealthRes);
 
   /*
   ##########################################################################################################

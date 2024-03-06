@@ -1,4 +1,37 @@
 import * as CSLwasm from "@dcspark/cardano-multiplatform-lib-nodejs";
+import {
+  ToCbor,
+  TxBuilder,
+  CborPositiveRational,
+  defaultV1Costs,
+  defaultV2Costs,
+  ExBudget,
+  Address,
+  Certificate,
+  CertificateType,
+  Hash28,
+  Hash32,
+  Hash,
+  PoolKeyHash,
+  PoolParams,
+  PubKeyHash,
+  Script,
+  ScriptType,
+  StakeAddress,
+  StakeCredentials,
+  StakeValidatorHash,
+  Tx,
+  TxIn,
+  TxMetadata,
+  UTxO,
+  Value,
+  forceTxOutRefStr,
+  isITxOut,
+  isIUTxO,
+  ITxBuildInput,
+  TxOut,
+  PrivateKey,
+  } from "@harmoniclabs/plu-ts";
 import { genSeedPhrase, seedPhraseToEntropy, genXPRV, genXPUB, genAccountKeyPrv, genAccountKeyPub, genAddressSigningKey, genStakeKey, genBaseAddr, genRewardAddr, encrypt, decrypt } from "./crypto.ts";
 import { decode } from "cbor-x";
 import { Buffer } from "node:buffer";
@@ -12,6 +45,7 @@ const ogmiosServer = "https://ogmiosmain.onchainapps.io";
 const kupoServer = "https://kupomain.onchainapps.io";
 const carpServer = "https://carp.onchainapps.io";
 const koiosServer = "https://api.koios.rest/api/v1";
+const koiosApiKey = "";
 
 /*
 ##########################################################################################################
@@ -90,6 +124,47 @@ export const kupoAPI = async (uri: string) => {
     console.log(e);
     return e;
   }
+};
+
+/*
+##########################################################################################################
+Using current epoch protocol parmaters from Koios API V1 to create a new TxBuilder instance
+#############################d############################################################################
+*/
+export const constructKoiosProtocolParams = async (protocolParamsKoiosRes: any) => {
+  const defaultProtocolParameters: any = {
+    txFeePerByte: protocolParamsKoiosRes[0].min_fee_a,
+    txFeeFixed: protocolParamsKoiosRes[0].min_fee_b,
+    maxBlockBodySize: protocolParamsKoiosRes[0].max_block_size,
+    maxTxSize: protocolParamsKoiosRes[0].max_tx_size,
+    maxBlockHeaderSize: protocolParamsKoiosRes[0].max_bh_size,
+    stakeAddressDeposit: Number(protocolParamsKoiosRes[0].key_deposit),
+    stakePoolDeposit: Number(protocolParamsKoiosRes[0].pool_deposit),
+    poolRetireMaxEpoch: protocolParamsKoiosRes[0].max_epoch,
+    stakePoolTargetNum: protocolParamsKoiosRes[0].optimal_pool_count,
+    poolPledgeInfluence: protocolParamsKoiosRes[0].influence,
+    monetaryExpansion: protocolParamsKoiosRes[0].monetary_expand_rate,
+    treasuryCut: protocolParamsKoiosRes[0].treasury_growth_rate,
+    protocolVersion: [protocolParamsKoiosRes[0].protocol_major, protocolParamsKoiosRes[0].protocol_minor],
+    minPoolCost: Number(protocolParamsKoiosRes[0].min_pool_cost),
+    utxoCostPerByte: Number(protocolParamsKoiosRes[0].coins_per_utxo_size),
+    costModels: {
+      PlutusScriptV1: protocolParamsKoiosRes[0].cost_models.PlutusV1,
+      PlutusScriptV2: protocolParamsKoiosRes[0].cost_models.PlutusV2,
+    },
+    executionUnitPrices: [
+      new CborPositiveRational(protocolParamsKoiosRes[0].price_mem * 10000, 100), // mem
+      // protocolParamsKoiosRes[0].price_mem * 100,
+      new CborPositiveRational(protocolParamsKoiosRes[0].price_step * 10000000, 1e5), // cpu
+    ],
+    maxTxExecutionUnits: new ExBudget({ mem: protocolParamsKoiosRes[0].max_tx_ex_mem, cpu: protocolParamsKoiosRes[0].max_tx_ex_steps }),
+    maxBlockExecutionUnits: new ExBudget({ mem: protocolParamsKoiosRes[0].max_block_ex_mem, cpu: protocolParamsKoiosRes[0].max_block_ex_steps }),
+    maxValueSize: protocolParamsKoiosRes[0].max_val_size,
+    collateralPercentage: protocolParamsKoiosRes[0].collateral_percent,
+    maxCollateralInputs: protocolParamsKoiosRes[0].max_collateral_inputs,
+  };
+
+  return defaultProtocolParameters;
 };
 
 /*
@@ -222,15 +297,14 @@ export const metadataCbortoJSON = async (cborString: string) => {
 
 /*
 ##########################################################################################################
-Take cardano POlicy.Asset and split into two parts
+Take cardano Policy.Asset and split into two parts
 #############################d############################################################################
 */
-
-export const fromHexString = (hexString: any) => Uint8Array.from(hexString.match(/.{1,2}/g).map((byte: any) => parseInt(byte, 16)));
-
 export const splitAsset = (asset: any) => {
   return asset.split(".");
 };
+
+export const fromHexString = (hexString: any) => Uint8Array.from(hexString.match(/.{1,2}/g).map((byte: any) => parseInt(byte, 16)));
 
 export const hex2a = (hexx: any) => {
   var hex = hexx.toString(); //force conversion
