@@ -53,9 +53,9 @@ export const genAccountPrivatekey= async (rootKey: any, index: any ) => {
   return(accountKey);
 };
 
-export const genAddressPrivatekey = async (accountKey: any, index: number) => {
+export const genAddressPrivatekey = async (accountKey: any, type: number, index: number) => {
   const spendingKey = accountKey
-        .derive(0) // 0 external || 1 change || 2 stake key
+        .derive(type) // 0 external || 1 change || 2 stake key
         .derive(index); // index
   return spendingKey;
 };

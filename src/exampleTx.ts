@@ -105,7 +105,7 @@ const buildTx = async () => {
   const accountKeyPrv = await genAccountPrivatekey(rootKey, 0);
   // console.log("accountKeyPrv", accountKeyPrv);
 
-  const accountAddressKeyPrv = await genAddressPrivatekey(accountKeyPrv, 0)
+  const accountAddressKeyPrv = await genAddressPrivatekey(accountKeyPrv, 1, 0)
   console.log("accountAddressKeyPrv", accountAddressKeyPrv);
 
   await txBuilder_PLUTS(defaultProtocolParameters, kupoInputs, cborInputs, utxoOutputs, changeAddress, accountAddressKeyPrv);
