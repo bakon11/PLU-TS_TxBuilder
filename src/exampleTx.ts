@@ -2,8 +2,6 @@ import * as fs from "fs";
 // import { TxBuilder, Address, Hash32, Hash28, Hash, UTxO, Value, TxOut, VKeyWitness, VKey, PrivateKey  } from "@harmoniclabs/plu-ts";
 import { koiosAPI, kupoAPI, genKeys, a2hex, splitAsset, fromHexString, fromHex, toHex, hex2a, constructKoiosProtocolParams, ogmiosHealth } from "./utils.ts";
 import { genSeedPhrase, seedPhraseToEntropy, genRootPrivateKey, genAccountPrivatekey, genAddressPrivatekey} from "./cryptoNew.ts"
-import * as plutsBip from "@harmoniclabs/bip32_ed25519";
-import * as pluts from "@harmoniclabs/plu-ts";
 import { txBuilder_PLUTS } from "./txbuilderPLUTS.ts";
 
 const buildTx = async () => {
@@ -53,7 +51,9 @@ const buildTx = async () => {
   Use when using UTXO info from other sources like Kupo indexer or BLockfrost
   #############################d############################################################################
   */
-  let kupoInputs: any = await kupoAPI(`matches/${JSON.parse(keys).baseAddress_bech32}?unspent`);
+  const inputAddress = "addr1qyfsw69quwgm33mmu4s9spefajf88ylx3zv3j2gjnesf5jasj0cyfdml97cnecvz3j25kxzc4j0hdy67wn3er3p9teeq6ahdpn";
+  let kupoInputs: any = await kupoAPI(`matches/${inputAddress}?unspent`);
+  // let kupoInputs: any = await kupoAPI(`matches/${JSON.parse(keys).baseAddress_bech32}?unspent`);
   // console.log("kupoInputs", kupoInputs);
 
   /*
@@ -96,24 +96,23 @@ const buildTx = async () => {
   // console.log("rootXPRV", JSON.parse(rootXPRV));
   
   const entropy = await seedPhraseToEntropy(JSON.parse(keys).seedPhrase);
-  console.log("entropy", entropy);
+  // console.log("entropy", entropy);
+
 
   const rootKey = await genRootPrivateKey(entropy);
-  console.log("rootKey", rootKey);
+  //console.log("rootKey: ", rootKey);
 
   const accountKeyPrv = await genAccountPrivatekey(rootKey, 0);
-  console.log("accountKeyPrv", accountKeyPrv);
+  // console.log("accountKeyPrv", accountKeyPrv);
 
   const accountAddressKeyPrv = await genAddressPrivatekey(accountKeyPrv, 0)
-  console.log("account address xprv", accountAddressKeyPrv);
-
-  // const addrPrvHash = accountAddressKeyPrv.toString();
-  // console.log("addrPrvHash", addrPrvHash);
-
+  console.log("accountAddressKeyPrv", accountAddressKeyPrv);
 
   await txBuilder_PLUTS(defaultProtocolParameters, kupoInputs, cborInputs, utxoOutputs, changeAddress, accountAddressKeyPrv);
 
 };
 
 buildTx();
+
+
 // genKeys();

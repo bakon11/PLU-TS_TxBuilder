@@ -3,7 +3,6 @@ import * as pluts from "@harmoniclabs/plu-ts";
 import { koiosAPI, kupoAPI, genKeys, a2hex, splitAsset, fromHexString, fromHex, toHex } from "./utils.ts";
 import { builtinModules } from "module";
 
-
 export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsKupo: any, utxoInputsCBOR: any, utxoOutputs: any, changeAddress: any, accountAddressKeyPrv: any) => {
   // console.log(protocolParameters);
   // console.log(utxoInputs[0].value);
@@ -50,6 +49,7 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsK
           // refScript: [] // look for ref script if any
         },
       }));
+      // console.log("address used", pluts.Address.fromString(utxo.address).paymentCreds)
     })
   );
   const inputsKupoParsed = inputs.map((utxo: any) => ({ utxo: utxo }));
@@ -88,17 +88,16 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsK
     // console.log("minUtxo", txBuilder.getMinimumOutputLovelaces( builtTx.hash));
     
     // Sign tx hash
-    const signedTx = accountAddressKeyPrv.sign(builtTx.hash);
-    console.log("signedTx", signedTx);
+    const signedTx = accountAddressKeyPrv.sign(builtTx.hash.toCbor());
+    // console.log("signedTx", signedTx);
 
     // add tx vkeys
+    // builtTx.addVKeyWitness(new pluts.VKeyWitness(new pluts.VKey(signedTx.pubKey), new pluts.Signature(signedTx.signature)));
     builtTx.addVKeyWitness(new pluts.VKeyWitness(new pluts.VKey(signedTx.pubKey), new pluts.Signature(signedTx.signature)));
-    
-    builtTx.signWith(new pluts.PrivateKey((signedTx.pubKey)));
-    
+
     const txCBOR = builtTx.toCbor().toString();
     console.log("txCBOR", txCBOR);
-    console.log("builtTx", builtTx);
+    console.log("builtTx", builtTx.hash);
     console.log("builtTx complete: ", builtTx.isComplete);
 
   } catch (error) {

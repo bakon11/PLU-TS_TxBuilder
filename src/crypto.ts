@@ -27,12 +27,12 @@ export const validateSeedPhrase = async (seed: any) => {
   }
 };
 
-export const seedPhraseToEntropy = async (seed_phrase: string) => {
+export const seedPhraseToEntropy1 = async (seed_phrase: string) => {
   return mnemonicToEntropy(seed_phrase);
 };
 
 //Root private key to create accounts
-export const genRootPrivateKey = async (entropy: any) => {
+export const genRootPrivateKey1 = async (entropy: any) => {
   try {
     return CLMwasm.Bip32PrivateKey.from_bip39_entropy(Buffer.from(entropy, "hex"), Buffer.from(""));
   } catch (error) {

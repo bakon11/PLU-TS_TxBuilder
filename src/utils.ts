@@ -1,6 +1,6 @@
 import * as CSLwasm from "@dcspark/cardano-multiplatform-lib-nodejs";
 import * as pluts from "@harmoniclabs/plu-ts";
-import { genSeedPhrase, seedPhraseToEntropy, genRootPrivateKey, genRootPublicKey, genAccountKeyPrv, genAccountKeyPub, genAddressSigningKey, genStakeKey, genBaseAddr, genRewardAddr, encrypt, decrypt } from "./crypto.ts";
+import { genSeedPhrase, seedPhraseToEntropy1, genRootPrivateKey1, genRootPublicKey, genAccountKeyPrv, genAccountKeyPub, genAddressSigningKey, genStakeKey, genBaseAddr, genRewardAddr, encrypt, decrypt } from "./crypto.ts";
 import { decode } from "cbor-x";
 import { Buffer } from "node:buffer";
 import * as fs from "fs";
@@ -148,9 +148,9 @@ export const genKeys = async () => {
   const walletPassword = JSON.parse(keys).walletPassword;
   // const seedPhrase = await genSeedPhrase();
   // console.log("seedPhrase", seedPhrase);
-  const entropy = await seedPhraseToEntropy(seedPhrase);
+  const entropy = await seedPhraseToEntropy1(seedPhrase);
   // console.log("entropy", entropy);
-  const rootXPRV: any = await genRootPrivateKey(entropy);
+  const rootXPRV: any = await genRootPrivateKey1(entropy);
   // console.log("rootXPRV", rootXPRV.to_bech32());
   // console.log("rootXPUB", rootXPRV.to_public().to_bech32());
   console.log("creating wallet/account/address");
