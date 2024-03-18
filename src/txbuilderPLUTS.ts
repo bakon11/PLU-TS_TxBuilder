@@ -94,12 +94,12 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsK
     // add tx vkeys
     builtTx.addVKeyWitness(new pluts.VKeyWitness(new pluts.VKey(signedTx.pubKey), new pluts.Signature(signedTx.signature)));
     
-    // builtTx.signWith();
+    builtTx.signWith(new pluts.PrivateKey((signedTx.pubKey)));
     
     const txCBOR = builtTx.toCbor().toString();
     console.log("txCBOR", txCBOR);
-    console.log("builtTx", builtTx.isComplete);
     console.log("builtTx", builtTx);
+    console.log("builtTx complete: ", builtTx.isComplete);
 
   } catch (error) {
     console.log("txBuilder.buildSync", error);
