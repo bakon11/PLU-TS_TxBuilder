@@ -1,38 +1,6 @@
 import * as CSLwasm from "@dcspark/cardano-multiplatform-lib-nodejs";
-import {
-  ToCbor,
-  TxBuilder,
-  CborPositiveRational,
-  defaultV1Costs,
-  defaultV2Costs,
-  ExBudget,
-  Address,
-  Certificate,
-  CertificateType,
-  Hash28,
-  Hash32,
-  Hash,
-  PoolKeyHash,
-  PoolParams,
-  PubKeyHash,
-  Script,
-  ScriptType,
-  StakeAddress,
-  StakeCredentials,
-  StakeValidatorHash,
-  Tx,
-  TxIn,
-  TxMetadata,
-  UTxO,
-  Value,
-  forceTxOutRefStr,
-  isITxOut,
-  isIUTxO,
-  ITxBuildInput,
-  TxOut,
-  PrivateKey,
-  } from "@harmoniclabs/plu-ts";
-import { genSeedPhrase, seedPhraseToEntropy, genXPRV, genXPUB, genAccountKeyPrv, genAccountKeyPub, genAddressSigningKey, genStakeKey, genBaseAddr, genRewardAddr, encrypt, decrypt } from "./crypto.ts";
+import * as pluts from "@harmoniclabs/plu-ts";
+import { genSeedPhrase, seedPhraseToEntropy, genRootPrivateKey, genRootPublicKey, genAccountKeyPrv, genAccountKeyPub, genAddressSigningKey, genStakeKey, genBaseAddr, genRewardAddr, encrypt, decrypt } from "./crypto.ts";
 import { decode } from "cbor-x";
 import { Buffer } from "node:buffer";
 import * as fs from "fs";
@@ -153,12 +121,12 @@ export const constructKoiosProtocolParams = async (protocolParamsKoiosRes: any) 
       PlutusScriptV2: protocolParamsKoiosRes[0].cost_models.PlutusV2,
     },
     executionUnitPrices: [
-      new CborPositiveRational(protocolParamsKoiosRes[0].price_mem * 10000, 100), // mem
+      new pluts.CborPositiveRational(protocolParamsKoiosRes[0].price_mem * 10000, 100), // mem
       // protocolParamsKoiosRes[0].price_mem * 100,
-      new CborPositiveRational(protocolParamsKoiosRes[0].price_step * 10000000, 1e5), // cpu
+      new pluts.CborPositiveRational(protocolParamsKoiosRes[0].price_step * 10000000, 1e5), // cpu
     ],
-    maxTxExecutionUnits: new ExBudget({ mem: protocolParamsKoiosRes[0].max_tx_ex_mem, cpu: protocolParamsKoiosRes[0].max_tx_ex_steps }),
-    maxBlockExecutionUnits: new ExBudget({ mem: protocolParamsKoiosRes[0].max_block_ex_mem, cpu: protocolParamsKoiosRes[0].max_block_ex_steps }),
+    maxTxExecutionUnits: new pluts.ExBudget({ mem: protocolParamsKoiosRes[0].max_tx_ex_mem, cpu: protocolParamsKoiosRes[0].max_tx_ex_steps }),
+    maxBlockExecutionUnits: new pluts.ExBudget({ mem: protocolParamsKoiosRes[0].max_block_ex_mem, cpu: protocolParamsKoiosRes[0].max_block_ex_steps }),
     maxValueSize: protocolParamsKoiosRes[0].max_val_size,
     collateralPercentage: protocolParamsKoiosRes[0].collateral_percent,
     maxCollateralInputs: protocolParamsKoiosRes[0].max_collateral_inputs,
@@ -182,7 +150,7 @@ export const genKeys = async () => {
   // console.log("seedPhrase", seedPhrase);
   const entropy = await seedPhraseToEntropy(seedPhrase);
   // console.log("entropy", entropy);
-  const rootXPRV: any = await genXPRV(entropy);
+  const rootXPRV: any = await genRootPrivateKey(entropy);
   // console.log("rootXPRV", rootXPRV.to_bech32());
   // console.log("rootXPUB", rootXPRV.to_public().to_bech32());
   console.log("creating wallet/account/address");

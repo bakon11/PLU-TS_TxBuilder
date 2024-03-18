@@ -1,8 +1,10 @@
-import { TxBuilder, Address, Hash28, Hash, UTxO, Value, TxOut, dataToCbor } from "@harmoniclabs/plu-ts";
+// import { TxBuilder, Address, Hash28, Hash, UTxO, Value, TxOut, VKeyWitness, VKey } from "@harmoniclabs/plu-ts";
+import * as pluts from "@harmoniclabs/plu-ts";
 import { koiosAPI, kupoAPI, genKeys, a2hex, splitAsset, fromHexString, fromHex, toHex } from "./utils.ts";
+import { builtinModules } from "module";
 
 
-export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsKupo: any, utxoInputsCBOR: any, utxoOutputs: any, changeAddress: any, privateKeyHex: any) => {
+export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsKupo: any, utxoInputsCBOR: any, utxoOutputs: any, changeAddress: any, accountAddressKeyPrv: any) => {
   // console.log(protocolParameters);
   // console.log(utxoInputs[0].value);
   // console.log(utxoInputsCBOR);
@@ -14,7 +16,7 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsK
   Constructing TxBuilder instance
   #############################d############################################################################
   */
-  const txBuilder = new TxBuilder(protocolParameters);
+  const txBuilder = new pluts.TxBuilder(protocolParameters);
   // console.log("txBuilder", txBuilder.protocolParamters);
 
   /*
@@ -22,7 +24,7 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsK
   Constructing UTxO instances from CBORs gathered through CIP30 getUtxos() method
   #############################d############################################################################
   */
-  const inputsCbor: any = utxoInputsCBOR.map(UTxO.fromCbor); // UTxO[]
+  const inputsCbor: any = utxoInputsCBOR.map(pluts.UTxO.fromCbor); // UTxO[]
   // console.log("inputs", inputsCbor);
   const inputsCborParsed = inputsCbor.map((utxo: any) => ({ utxo: utxo }));
   // console.log("inputsCborParsed", inputsCborParsed[1].utxo.resolved.value.lovelaces);
@@ -36,13 +38,13 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsK
   Promise.all(
     await utxoInputsKupo.map(async (utxo: any) => {
       // console.log("adding inputs")
-      inputs.push( new UTxO({
+      inputs.push( new pluts.UTxO({
         utxoRef: {
           id: utxo.transaction_id,
           index:utxo.output_index,
         },
         resolved: {
-          address: Address.fromString(utxo.address),
+          address: pluts.Address.fromString(utxo.address),
           value: await createInputValues(utxo),
           // datum: [], // parse kupo datum
           // refScript: [] // look for ref script if any
@@ -61,8 +63,8 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsK
   let outputsParsed: any = [];
   Promise.all(  
     await utxoOutputs.map(async (output: any ) => {
-      outputsParsed.push(new TxOut({
-        address: Address.fromString(output.address),
+      outputsParsed.push(new pluts.TxOut({
+        address: pluts.Address.fromString(output.address),
         value: await createOutputValues(output), // parse kupo value
         // datum: [], // parse kupo datum
         // refScript: [] // look for ref script if any
@@ -79,26 +81,49 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsK
   const ttl = 500000000;
 
   try {
-    let builtTx: any = txBuilder.buildSync({ inputs: inputsKupoParsed, changeAddress, outputs: outputsParsed, invalidAfter: ttl});
-    // console.log("builtTx", builtTx.isComplete);
-    // console.log("builtTx fee", builtTx.body.fee);
+    let builtTx = txBuilder.buildSync({ inputs: inputsKupoParsed, changeAddress, outputs: outputsParsed, invalidAfter: ttl});
+    // console.log("builtTx", builtTx.hash);
+    // console.log("builtTx fee", builtTx.body.outputs[0].value.lovelaces);
     // console.log("builtHash", builtTx.hash);
-    console.log("witnesses before signing:", builtTx.witnesses.vkeyWitnesses)
     // console.log("minUtxo", txBuilder.getMinimumOutputLovelaces( builtTx.hash));
-    const singingKey: any = new Hash(privateKeyHex);
-    await builtTx.signWith(singingKey);
-    console.log("witnesses after signing:", builtTx.witnesses.vkeyWitnesses)
-    // const txCBor = builtTx;
-    //console.log("txCBor", txCBor);
+    
+    // Sign tx hash
+    const signedTx = accountAddressKeyPrv.sign(builtTx.hash);
+    console.log("signedTx", signedTx);
+
+    // add tx vkeys
+    builtTx.addVKeyWitness(new pluts.VKeyWitness(new pluts.VKey(signedTx.pubKey), new pluts.Signature(signedTx.signature)));
+    
+    // builtTx.signWith();
+    
+    const txCBOR = builtTx.toCbor().toString();
+    console.log("txCBOR", txCBOR);
+    console.log("builtTx", builtTx.isComplete);
+    console.log("builtTx", builtTx);
+
   } catch (error) {
     console.log("txBuilder.buildSync", error);
   };
-  
 };
 
+// tx.hash.toCbor().toBuffer()
+// tx.hash.toCbor().toString()
 // const txHex = await Buffer.from(transaction.to_bytes()).toString("hex");
 // const encodedSignedTx = Buffer.from(txSigned.to_bytes()).toString("hex");
 // console.log("encodedSignedTx", encodedSignedTx);
+
+/*
+( signer: PrivateKey ): void => {
+    const [ derivedPubKey, signature ] = signEd25519( this.body.hash.toBuffer(), signer.toBuffer() );
+
+    this.addVKeyWitness(
+        new VKeyWitness(
+            new VKey( derivedPubKey ),
+            new Signature( signature )
+        )
+    );
+}
+*/
 
 /*
 ##########################################################################################################
@@ -113,16 +138,16 @@ const createInputValues = async (kupoUtxo: any) => {
     Object.entries(kupoUtxo.value).map(([key, value]: any) => {
       // console.log("key", key);
       // console.log("value", value);
-      key === "coins" && ( kupoAssets.push( Value.lovelaces(kupoUtxo.value.coins)));
+      key === "coins" && ( kupoAssets.push( pluts.Value.lovelaces(kupoUtxo.value.coins)));
       key === "assets" &&  Object.entries(value).length > 0 &&
         Object.entries(value).map(([asset, quantity]: any) => {    
-          let assetNew = Value.singleAsset(new Hash28(splitAsset(asset)[0]), fromHex(splitAsset(asset)[1]), quantity)
+          let assetNew = pluts.Value.singleAsset(new pluts.Hash28(splitAsset(asset)[0]), fromHex(splitAsset(asset)[1]), quantity)
           kupoAssets.push(assetNew);
         });
     })
   );
   // console.log("kupoAssets", kupoAssets);
-  return( kupoAssets.reduce(Value.add));
+  return( kupoAssets.reduce(pluts.Value.add));
 };
 
 /*
@@ -148,15 +173,15 @@ const createOutputValues = async (output: any) => {
     Object.entries(output.value).map(([key, value]: any) => {
       // console.log("key", key);
       // console.log("value", value);
-      key === "coins" && ( outputAssets.push( Value.lovelaces(output.value.coins)));
+      key === "coins" && ( outputAssets.push( pluts.Value.lovelaces(output.value.coins)));
       key === "assets" &&  Object.entries(value).length > 0 &&
         Object.entries(value).map(([asset, quantity]: any) => {    
-          let assetNew = Value.singleAsset(new Hash28(splitAsset(asset)[0]), fromHex(splitAsset(asset)[1]), quantity)
+          let assetNew = pluts.Value.singleAsset(new pluts.Hash28(splitAsset(asset)[0]), fromHex(splitAsset(asset)[1]), quantity)
           outputAssets.push(assetNew);
         });
     })
   );
-  return( outputAssets.reduce(Value.add));
+  return( outputAssets.reduce(pluts.Value.add));
 };
 
 /*

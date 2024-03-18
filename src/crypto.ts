@@ -1,5 +1,5 @@
 import * as CLMwasm from "@dcspark/cardano-multiplatform-lib-nodejs";
-import { mnemonicToEntropy, generateMnemonic, validateMnemonic } from "bip39";
+import { mnemonicToEntropy, generateMnemonic, validateMnemonic, } from "bip39";
 import CryptoJS from "crypto-js";
 
 const harden = (num: number) => {
@@ -32,7 +32,7 @@ export const seedPhraseToEntropy = async (seed_phrase: string) => {
 };
 
 //Root private key to create accounts
-export const genXPRV = async (entropy: any) => {
+export const genRootPrivateKey = async (entropy: any) => {
   try {
     return CLMwasm.Bip32PrivateKey.from_bip39_entropy(Buffer.from(entropy, "hex"), Buffer.from(""));
   } catch (error) {
@@ -41,7 +41,7 @@ export const genXPRV = async (entropy: any) => {
   }
 };
 
-export const genXPUB = async (accountKeyPrv: any) => {
+export const genRootPublicKey = async ( accountKeyPrv: any ) => {
   try {
     const accountKeyPub = await accountKeyPrv.to_public();
     return accountKeyPub;

@@ -1,9 +1,10 @@
-import { txBuilder_PLUTS } from "./txbuilderPLUTS.ts";
-import * as CLMwasm from "@dcspark/cardano-multiplatform-lib-nodejs";
-import * as CSLwasm from "@emurgo/cardano-serialization-lib-nodejs";
-import { koiosAPI, kupoAPI, genKeys, a2hex, splitAsset, fromHexString, fromHex, toHex, hex2a, constructKoiosProtocolParams, ogmiosHealth } from "./utils.ts";
-import { genSeedPhrase, seedPhraseToEntropy, genXPRV, genXPUB, genAccountKeyPrv, genAccountKeyPub, genAddressSigningKey, genStakeKey, genBaseAddr, genRewardAddr, encrypt, decrypt } from "./crypto.ts";
 import * as fs from "fs";
+// import { TxBuilder, Address, Hash32, Hash28, Hash, UTxO, Value, TxOut, VKeyWitness, VKey, PrivateKey  } from "@harmoniclabs/plu-ts";
+import { koiosAPI, kupoAPI, genKeys, a2hex, splitAsset, fromHexString, fromHex, toHex, hex2a, constructKoiosProtocolParams, ogmiosHealth } from "./utils.ts";
+import { genSeedPhrase, seedPhraseToEntropy, genRootPrivateKey, genAccountPrivatekey, genAddressPrivatekey} from "./cryptoNew.ts"
+import * as plutsBip from "@harmoniclabs/bip32_ed25519";
+import * as pluts from "@harmoniclabs/plu-ts";
+import { txBuilder_PLUTS } from "./txbuilderPLUTS.ts";
 
 const buildTx = async () => {
   /*
@@ -89,31 +90,28 @@ const buildTx = async () => {
   However this is not secure and will be corrected in the future.
   #############################d############################################################################
   */
-  const seedPhrase = JSON.parse(keys).seedPhrase;
-  // const walletPassword = JSON.parse(keys).walletPassword;
-  // const seedPhrase = await genSeedPhrase();
-  // console.log("seedPhrase", seedPhrase);
-  
-  const entropy = await seedPhraseToEntropy(seedPhrase);
-  // console.log("entropy", entropy);
-  
-  const rootXPRV: any = await genXPRV(entropy);
+ 
+  //  genRootPrivateKeyNew, genAccountPrivatekeyNew, genAddressPrivatekeyNew, genAddressPubKeyNew
   // const rootXPRV: any = await decrypt( JSON.parse(keys).walletPassword ,JSON.parse(keys).rootXPRV);
-  // console.log("rootXPRV", rootXPRV);
-  // console.log("creating wallet/account/address");
+  // console.log("rootXPRV", JSON.parse(rootXPRV));
   
-  const accountKeyPrv: any = await genAccountKeyPrv(rootXPRV, 1852, 1815, 0);
-  // const accountKeyPrv: any = await decrypt( JSON.parse(keys).walletPassword ,JSON.parse(keys).accountAddressKeyPrv);
-  // console.log("accountKeyPrv", await encrypt( walletPassword, accountKeyPrv.to_bech32() ));
-  // console.log("accountKeyPrv", keyBech.to_raw_key());
-  // console.log("accountKeyPub", accountKeyPrv.to_public().to_bech32());
-  
-  const accountAddressKeyPrv: any = await genAddressSigningKey(accountKeyPrv, 0);
-  const privateKeyHex: any = toHex(accountAddressKeyPrv.to_raw_key().to_bech32());
+  const entropy = await seedPhraseToEntropy(JSON.parse(keys).seedPhrase);
+  console.log("entropy", entropy);
+
+  const rootKey = await genRootPrivateKey(entropy);
+  console.log("rootKey", rootKey);
+
+  const accountKeyPrv = await genAccountPrivatekey(rootKey, 0);
+  console.log("accountKeyPrv", accountKeyPrv);
+
+  const accountAddressKeyPrv = await genAddressPrivatekey(accountKeyPrv, 0)
+  console.log("account address xprv", accountAddressKeyPrv);
+
+  // const addrPrvHash = accountAddressKeyPrv.toString();
+  // console.log("addrPrvHash", addrPrvHash);
 
 
-
-  await txBuilder_PLUTS(defaultProtocolParameters, kupoInputs, cborInputs, utxoOutputs, changeAddress, privateKeyHex);
+  await txBuilder_PLUTS(defaultProtocolParameters, kupoInputs, cborInputs, utxoOutputs, changeAddress, accountAddressKeyPrv);
 
 };
 
