@@ -4,7 +4,7 @@ import { koiosAPI, kupoAPI, genKeys, a2hex, splitAsset, fromHexString, fromHex, 
 import { genSeedPhrase, seedPhraseToEntropy, genRootPrivateKey, genAccountPrivatekey, genAddressPrivatekey} from "./cryptoNew.ts"
 import { txBuilder_PLUTS } from "./txbuilderPLUTS.ts";
 import * as pluts from "@harmoniclabs/plu-ts";
-import * as plutsBip from "@harmoniclabs/bip32_ed25519";
+import { blake2b_224 } from "@harmoniclabs/crypto";
 
 const buildTx = async () => {
   /*
@@ -110,8 +110,8 @@ const buildTx = async () => {
   // console.log("accountAddressKeyPrv", accountAddressKeyPrv);
 
   const accountAddressKeyPub = accountAddressKeyPrv.public();
-  console.log("accountAddressKeyPub", accountAddressKeyPub.toPubKeyBytes());
-  console.log("input address ", pluts.Address.fromString(inputAddress).paymentCreds.hash.toString())
+  console.log("accountAddress Key Hash from @harmoniclabs/bip32_ed25519 ", toHex( blake2b_224(accountAddressKeyPub.toPubKeyBytes())));
+  console.log("input address hash", pluts.Address.fromString(inputAddress).paymentCreds.hash.toString())
 
   await txBuilder_PLUTS(defaultProtocolParameters, kupoInputs, cborInputs, utxoOutputs, changeAddress, accountAddressKeyPrv);
 };
