@@ -88,41 +88,23 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsK
     // console.log("minUtxo", txBuilder.getMinimumOutputLovelaces( builtTx.hash));
     
     // Sign tx hash
-    const signedTx = accountAddressKeyPrv.sign(builtTx.hash.toCbor());
-    // console.log("signedTx", signedTx);
+    // console.log("Singing body hash: ", builtTx.hash)
+    const signedTx = accountAddressKeyPrv.sign(builtTx.hash);
+    // console.log("signedTx pubKey", signedTx.pubKey);
 
     // add tx vkeys
     // builtTx.addVKeyWitness(new pluts.VKeyWitness(new pluts.VKey(signedTx.pubKey), new pluts.Signature(signedTx.signature)));
     builtTx.addVKeyWitness(new pluts.VKeyWitness(new pluts.VKey(signedTx.pubKey), new pluts.Signature(signedTx.signature)));
 
     const txCBOR = builtTx.toCbor().toString();
-    console.log("txCBOR", txCBOR);
-    console.log("builtTx", builtTx.hash);
-    console.log("builtTx complete: ", builtTx.isComplete);
+    // console.log("builtTx body hash", builtTx);
+    // console.log("txCBOR", txCBOR);
+    // console.log("builtTx complete: ", builtTx.isComplete);
 
   } catch (error) {
     console.log("txBuilder.buildSync", error);
   };
 };
-
-// tx.hash.toCbor().toBuffer()
-// tx.hash.toCbor().toString()
-// const txHex = await Buffer.from(transaction.to_bytes()).toString("hex");
-// const encodedSignedTx = Buffer.from(txSigned.to_bytes()).toString("hex");
-// console.log("encodedSignedTx", encodedSignedTx);
-
-/*
-( signer: PrivateKey ): void => {
-    const [ derivedPubKey, signature ] = signEd25519( this.body.hash.toBuffer(), signer.toBuffer() );
-
-    this.addVKeyWitness(
-        new VKeyWitness(
-            new VKey( derivedPubKey ),
-            new Signature( signature )
-        )
-    );
-}
-*/
 
 /*
 ##########################################################################################################
@@ -182,135 +164,3 @@ const createOutputValues = async (output: any) => {
   );
   return( outputAssets.reduce(pluts.Value.add));
 };
-
-/*
-##########################################################################################################
-Ignore all this, just refrence while building this.
-#############################d############################################################################
-*/
-/*
-builtTx Tx {
-  body: TxBody {
-    inputs: [ [TxIn], [TxIn] ],
-    outputs: [ [TxOut], [TxOut] ],
-    fee: [Getter/Setter],
-    ttl: undefined,
-    certs: undefined,
-    withdrawals: undefined,
-    protocolUpdate: undefined,
-    auxDataHash: undefined,
-    validityIntervalStart: undefined,
-    mint: undefined,
-    scriptDataHash: undefined,
-    collateralInputs: undefined,
-    requiredSigners: undefined,
-    network: 'mainnet',
-    collateralReturn: undefined,
-    refInputs: undefined,
-    hash: [Getter/Setter]
-  },
-  witnesses: TxWitnessSet {
-    vkeyWitnesses: [Getter/Setter],
-    bootstrapWitnesses: [Getter/Setter],
-    datums: [Getter/Setter],
-    nativeScripts: [Getter/Setter],
-    plutusV1Scripts: [Getter/Setter],
-    plutusV2Scripts: [Getter/Setter],
-    redeemers: [Getter/Setter],
-    isComplete: [Getter/Setter],
-    addVKeyWitness: [Function (anonymous)]
-  },
-  isScriptValid: true,
-  auxiliaryData: undefined,
-  hash: [Getter/Setter],
-  addVKeyWitness: [Function (anonymous)],
-  signWith: [Function (anonymous)],
-  signWithCip30Wallet: [Function (anonymous)],
-  isComplete: [Getter/Setter]
-}
-*/
-/*
-where you see "entry" in the name generates a value for the array
-if it has no "entry" it generates a value only with that entry
-exapmple 
-
-the Value class has an add static method
-so you just do Value.add( assets1, assets2)
-and you have a new Value instance
-
-singing tx can be done with signWith method on a constructed tx
-[9:30 AM]
-signWith expects the private key
-
-export class Value {
-    // lots of stuff here ...
-
-    static lovelaceEntry( n: CanBeUInteger ): IValueAdaEntry
-    {
-        return {
-            policy: "",
-            assets: [
-                {
-                    name: new Uint8Array([]),
-                    quantity: typeof n === "number" ? Math.round( n ) : BigInt( n ) 
-                }
-            ]
-        };
-    }
-
-    static lovelaces( n: number | bigint ): Value
-    {
-        return new Value([ Value.lovelaceEntry(n) ]);
-    }
-
-    static assetEntry(
-        name: Uint8Array,
-        qty: number | bigint
-    ): IValueAsset
-    {
-        if(!(
-            name instanceof Uint8Array &&
-            name.length <= 32
-        )) throw new Error("invalid asset name; must be Uint8Array of length <= 32");
-        return {
-            name: name.slice(),
-            quantity: typeof qty === "number" ? Math.round( qty ) : BigInt( qty ) 
-        };
-    }
-
-    static singleAssetEntry(
-        policy: Hash28,
-        name: Uint8Array,
-        qty: number | bigint
-    ): IValuePolicyEntry
-    {
-        return {
-            policy,
-            assets: [ Value.assetEntry( name, qty ) ]
-        };
-    }
-
-    static singleAsset(
-        policy: Hash28,
-        name: Uint8Array,
-        qty: number | bigint
-    ): Value
-    {
-        return new Value([
-            Value.singleAssetEntry(
-                policy,
-                name,
-                qty
-            )
-        ]);
-    }
-
-    static entry(
-        policy: Hash28,
-        assets: IValueAssets
-    ): IValuePolicyEntry
-    {
-        return { policy, assets };
-    }
-}
-*/

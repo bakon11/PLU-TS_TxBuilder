@@ -3,6 +3,8 @@ import * as fs from "fs";
 import { koiosAPI, kupoAPI, genKeys, a2hex, splitAsset, fromHexString, fromHex, toHex, hex2a, constructKoiosProtocolParams, ogmiosHealth } from "./utils.ts";
 import { genSeedPhrase, seedPhraseToEntropy, genRootPrivateKey, genAccountPrivatekey, genAddressPrivatekey} from "./cryptoNew.ts"
 import { txBuilder_PLUTS } from "./txbuilderPLUTS.ts";
+import * as pluts from "@harmoniclabs/plu-ts";
+import * as plutsBip from "@harmoniclabs/bip32_ed25519";
 
 const buildTx = async () => {
   /*
@@ -98,18 +100,20 @@ const buildTx = async () => {
   const entropy = await seedPhraseToEntropy(JSON.parse(keys).seedPhrase);
   // console.log("entropy", entropy);
 
-
   const rootKey = await genRootPrivateKey(entropy);
   //console.log("rootKey: ", rootKey);
 
   const accountKeyPrv = await genAccountPrivatekey(rootKey, 0);
   // console.log("accountKeyPrv", accountKeyPrv);
 
-  const accountAddressKeyPrv = await genAddressPrivatekey(accountKeyPrv, 1, 0)
-  console.log("accountAddressKeyPrv", accountAddressKeyPrv);
+  const accountAddressKeyPrv = await genAddressPrivatekey(accountKeyPrv, 0, 0)
+  // console.log("accountAddressKeyPrv", accountAddressKeyPrv);
+
+  const accountAddressKeyPub = accountAddressKeyPrv.public();
+  console.log("accountAddressKeyPub", accountAddressKeyPub.toPubKeyBytes());
+  console.log("input address ", pluts.Address.fromString(inputAddress).paymentCreds.hash.toString())
 
   await txBuilder_PLUTS(defaultProtocolParameters, kupoInputs, cborInputs, utxoOutputs, changeAddress, accountAddressKeyPrv);
-
 };
 
 buildTx();
