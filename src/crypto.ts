@@ -36,7 +36,7 @@ export const genRootPrivateKey1 = async (entropy: any) => {
   try {
     const rootKey = CLMwasm.Bip32PrivateKey.from_bip39_entropy(Buffer.from(entropy, "hex"), Buffer.from(""));
     // console.log("rootKey", rootKey);
-    return(rootKey);
+    return(rootKey.as_bytes());
   } catch (error) {
     console.log(error);
     return error;

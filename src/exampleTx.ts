@@ -111,7 +111,7 @@ const buildTx = async () => {
   const rootKey = await genRootPrivateKey(entropy);
   console.log("rootKey  plu-ts: ",  toHex(rootKey?.bytes));
   const rootKey1 = await genRootPrivateKey1(entropy1);
-  console.log("rootKey  CML: ", toHex(rootKey1.as_bytes()));
+  console.log("rootKey  CML: ", toHex(rootKey1));
 
   console.log("#################################################################")
 

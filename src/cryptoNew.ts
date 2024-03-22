@@ -35,7 +35,7 @@ export const genRootPrivateKey = async (entropy: any) => {
   try{
     const rootKey = plutsBip.XPrv.fromEntropy(entropy);
     // console.log("rootKey", rootKey);
-    return rootKey
+    return(rootKey)
   } catch (error) {
     console.log("root key error: ", error); 
   }
