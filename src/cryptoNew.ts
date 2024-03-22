@@ -33,7 +33,7 @@ export const seedPhraseToEntropy = async (seed_phrase: string) => {
 
 export const genRootPrivateKey = async (entropy: any) => {
   try{
-    const rootKey: any = plutsBip.XPrv.fromEntropy(entropy);
+    const rootKey = plutsBip.XPrv.fromEntropy(entropy);
     // console.log("rootKey", rootKey);
     return rootKey
   } catch (error) {

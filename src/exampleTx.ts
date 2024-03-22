@@ -2,9 +2,13 @@ import * as fs from "fs";
 // import { TxBuilder, Address, Hash32, Hash28, Hash, UTxO, Value, TxOut, VKeyWitness, VKey, PrivateKey  } from "@harmoniclabs/plu-ts";
 import { koiosAPI, kupoAPI, genKeys, a2hex, splitAsset, fromHexString, fromHex, toHex, hex2a, constructKoiosProtocolParams, ogmiosHealth } from "./utils.ts";
 import { genSeedPhrase, seedPhraseToEntropy, genRootPrivateKey, genAccountPrivatekey, genAddressPrivatekey} from "./cryptoNew.ts"
+import { genRootPrivateKey1, seedPhraseToEntropy1, genAccountKeyPrv, genAddressSigningKey } from "./crypto.ts";
 import { txBuilder_PLUTS } from "./txbuilderPLUTS.ts";
 import * as pluts from "@harmoniclabs/plu-ts";
 import { blake2b_224 } from "@harmoniclabs/crypto";
+import * as plutsBip from "@harmoniclabs/bip32_ed25519";
+
+import * as CLMwasm from "@dcspark/cardano-multiplatform-lib-nodejs";
 
 const buildTx = async () => {
   /*
@@ -98,22 +102,40 @@ const buildTx = async () => {
   // console.log("rootXPRV", JSON.parse(rootXPRV));
   
   const entropy = await seedPhraseToEntropy(JSON.parse(keys).seedPhrase);
-  // console.log("entropy", entropy);
+  console.log("entropy  plu-ts", entropy);
+  const entropy1 = await seedPhraseToEntropy1(JSON.parse(keys).seedPhrase);
+  console.log("entropy CML", entropy1);
+
+  console.log("#################################################################");
 
   const rootKey = await genRootPrivateKey(entropy);
-  //console.log("rootKey: ", rootKey);
+  console.log("rootKey  plu-ts: ",  toHex(rootKey?.bytes));
+  const rootKey1 = await genRootPrivateKey1(entropy1);
+  console.log("rootKey  CML: ", toHex(rootKey1.as_bytes()));
+
+  console.log("#################################################################")
 
   const accountKeyPrv = await genAccountPrivatekey(rootKey, 0);
-  // console.log("accountKeyPrv", accountKeyPrv);
+  // console.log("accountKeyPrv plu-ts", accountKeyPrv);
+  const accountKeyPrvCML = await genAccountKeyPrv(rootKey1, 1852, 1815, 0);
+  // console.log("accountKey CML", accountKeyPrvCML);
+  
+  console.log("#################################################################")
 
   const accountAddressKeyPrv = await genAddressPrivatekey(accountKeyPrv, 0, 0)
-  // console.log("accountAddressKeyPrv", accountAddressKeyPrv);
+  // console.log("addressKey Prv pluts: ", plutsBip.XPrv.fromBytes(accountAddressKeyPrv.bytes));
+  // console.log("accountAddressKeyPrv: ", blake2b_224((accountAddressKeyPrv.bytes)));
+  // const accountAddressKeyPub = accountAddressKeyPrv.public();
+  // console.log("accountAddress Key Hash from @harmoniclabs/bip32_ed25519 ", toHex( blake2b_224(accountAddressKeyPub.toPubKeyBytes())));
+  // console.log("input address hash", pluts.Address.fromString(inputAddress).paymentCreds.hash.toString())
+  const addressKeyPrvCML = await genAddressSigningKey(accountKeyPrvCML, 0);
+  // console.log("addressKey prv CML: ", addressKeyPrvCML);
 
-  const accountAddressKeyPub = accountAddressKeyPrv.public();
-  console.log("accountAddress Key Hash from @harmoniclabs/bip32_ed25519 ", toHex( blake2b_224(accountAddressKeyPub.toPubKeyBytes())));
-  console.log("input address hash", pluts.Address.fromString(inputAddress).paymentCreds.hash.toString())
+  // console.log("#################################################################")
 
-  await txBuilder_PLUTS(defaultProtocolParameters, kupoInputs, cborInputs, utxoOutputs, changeAddress, accountAddressKeyPrv);
+  // console.log("accountAddress Key Hash from", toHex(addressKeyPrvCML.to_public().to_raw_key().hash().to_bytes()));
+
+  // await txBuilder_PLUTS(defaultProtocolParameters, kupoInputs, cborInputs, utxoOutputs, changeAddress, addressKeyPrvCML);
 };
 
 buildTx();

@@ -164,3 +164,45 @@ const createOutputValues = async (output: any) => {
   );
   return( outputAssets.reduce(pluts.Value.add));
 };
+
+/*
+In order to get transaction id using cardano-serialization-lib you should convert transaction id to bytes and convert them to hex string.
+
+Buffer.from(utxo.input().transaction_id().to_bytes()).toString('hex')
+*/
+
+/*
+We can convert the addr_test1grqe6lg9ay8wkcu5k5e38lne63c80h3nq6xxhqfmhewf645pllllllllllll7lupllllllllllll7lupllllllllllll7lc9wayvj bech32 to hex using the following code:
+
+// this function was copied from the bech32 package
+function convert(data, inBits, outBits, pad) {
+  let value = 0;
+  let bits = 0;
+  const maxV = (1 << outBits) - 1;
+  const result = [];
+  for (let i = 0; i < data.length; ++i) {
+      value = (value << inBits) | data[i];
+      bits += inBits;
+      while (bits >= outBits) {
+          bits -= outBits;
+          result.push((value >> bits) & maxV);
+      }
+  }
+  if (pad) {
+      if (bits > 0) {
+          result.push((value << (outBits - bits)) & maxV);
+      }
+  }
+  else {
+      if (bits >= inBits)
+          return 'Excess padding';
+      if ((value << (outBits - bits)) & maxV)
+          return 'Non-zero padding';
+  }
+  return result;
+}
+const decoded = bech32.decode('addr_test1grqe6lg9ay8wkcu5k5e38lne63c80h3nq6xxhqfmhewf645pllllllllllll7lupllllllllllll7lupllllllllllll7lc9wayvj', 111);
+const base16 = convert(decoded.words, 5, 8, false);
+const hexAddress = Buffer.from(base16);
+console.log(hexAddress.toString('hex'));
+*/

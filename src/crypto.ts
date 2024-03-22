@@ -34,7 +34,9 @@ export const seedPhraseToEntropy1 = async (seed_phrase: string) => {
 //Root private key to create accounts
 export const genRootPrivateKey1 = async (entropy: any) => {
   try {
-    return CLMwasm.Bip32PrivateKey.from_bip39_entropy(Buffer.from(entropy, "hex"), Buffer.from(""));
+    const rootKey = CLMwasm.Bip32PrivateKey.from_bip39_entropy(Buffer.from(entropy, "hex"), Buffer.from(""));
+    // console.log("rootKey", rootKey);
+    return(rootKey);
   } catch (error) {
     console.log(error);
     return error;
