@@ -1,5 +1,5 @@
-import * as CLMwasm from "@dcspark/cardano-multiplatform-lib-nodejs";
 import { mnemonicToEntropy, generateMnemonic, validateMnemonic, } from "bip39";
+import * as CLMwasm from "@dcspark/cardano-multiplatform-lib-nodejs";
 import CryptoJS from "crypto-js";
 
 const harden = (num: number) => {
@@ -36,7 +36,7 @@ export const genRootPrivateKey1 = async (entropy: any) => {
   try {
     const rootKey = CLMwasm.Bip32PrivateKey.from_bip39_entropy(Buffer.from(entropy, "hex"), Buffer.from(""));
     // console.log("rootKey", rootKey);
-    return(rootKey.as_bytes());
+    return(rootKey);
   } catch (error) {
     console.log(error);
     return error;

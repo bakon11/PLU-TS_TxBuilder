@@ -1,7 +1,6 @@
 // import { TxBuilder, Address, Hash28, Hash, UTxO, Value, TxOut, VKeyWitness, VKey } from "@harmoniclabs/plu-ts";
 import * as pluts from "@harmoniclabs/plu-ts";
 import { koiosAPI, kupoAPI, genKeys, a2hex, splitAsset, fromHexString, fromHex, toHex } from "./utils.ts";
-import { builtinModules } from "module";
 
 export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsKupo: any, utxoInputsCBOR: any, utxoOutputs: any, changeAddress: any, accountAddressKeyPrv: any) => {
   // console.log(protocolParameters);
@@ -73,6 +72,7 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsK
   );
   // console.log("outputsParsed", outputsParsed);
 
+
   /*
   ##########################################################################################################
   Transaction time to live till after slot?
@@ -89,17 +89,22 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsK
     
     // Sign tx hash
     // console.log("Singing body hash: ", builtTx.hash)
-    const signedTx = accountAddressKeyPrv.sign(builtTx.hash);
+    const signedTx = accountAddressKeyPrv.sign(builtTx);
     // console.log("signedTx pubKey", signedTx.pubKey);
 
     // add tx vkeys
     // builtTx.addVKeyWitness(new pluts.VKeyWitness(new pluts.VKey(signedTx.pubKey), new pluts.Signature(signedTx.signature)));
-    builtTx.addVKeyWitness(new pluts.VKeyWitness(new pluts.VKey(signedTx.pubKey), new pluts.Signature(signedTx.signature)));
+    
+    const VKeyWitness = new pluts.VKeyWitness(new pluts.VKey(signedTx.pubKey), new pluts.Signature(signedTx.signature));
+    console.log("VKeyWitness", VKeyWitness);
+
+    builtTx.addVKeyWitness(VKeyWitness);
 
     const txCBOR = builtTx.toCbor().toString();
-    // console.log("builtTx body hash", builtTx);
-    // console.log("txCBOR", txCBOR);
-    // console.log("builtTx complete: ", builtTx.isComplete);
+    console.log("builtTx", builtTx);
+    console.log("txCBOR", txCBOR);
+    console.log("builtTx", builtTx.hash);
+    console.log("builtTx complete: ", builtTx.isComplete);
 
   } catch (error) {
     console.log("txBuilder.buildSync", error);

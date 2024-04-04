@@ -1,9 +1,9 @@
 import * as CSLwasm from "@dcspark/cardano-multiplatform-lib-nodejs";
 import * as pluts from "@harmoniclabs/plu-ts";
-import { genSeedPhrase, seedPhraseToEntropy1, genRootPrivateKey1, genRootPublicKey, genAccountKeyPrv, genAccountKeyPub, genAddressSigningKey, genStakeKey, genBaseAddr, genRewardAddr, encrypt, decrypt } from "./crypto.ts";
+import { genSeedPhrase, seedPhraseToEntropy1, genRootPrivateKey1, genRootPublicKey, genAccountKeyPrv, genAccountKeyPub, genAddressSigningKey, genStakeKey, genBaseAddr, genRewardAddr, encrypt, decrypt } from "./cryptoWASM.ts";
 import { decode } from "cbor-x";
 import { Buffer } from "node:buffer";
-import * as fs from "fs";
+import * as fs from "node:fs";
 import fetch from "node-fetch";
 const mandaladb = "../server/typescript/db/mandala.db";
 // const ogmiosServer = "http://192.168.8.2:1337";

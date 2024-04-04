@@ -33,7 +33,7 @@ export const seedPhraseToEntropy = async (seed_phrase: string) => {
 
 export const genRootPrivateKey = async (entropy: any) => {
   try{
-    const rootKey = plutsBip.XPrv.fromEntropy(entropy);
+    const rootKey = plutsBip.XPrv.fromEntropy(Buffer.from(entropy, "hex"), "");
     // console.log("rootKey", rootKey);
     return(rootKey)
   } catch (error) {
@@ -45,17 +45,15 @@ export const genRootPrivateKey = async (entropy: any) => {
 export const genAccountPrivatekey= async (rootKey: any, index: any ) => {
   // hardened derivation
   const accountKey = rootKey
-  .derive(harden(1852)) // purpose
-  .derive(harden(1815)) // coin type
-  .derive(harden(index)); // account #0
-
-
+    .derive(harden(1852)) // purpose
+    .derive(harden(1815)) // coin type
+    .derive(harden(index)); // account #0
   return(accountKey);
 };
 
 export const genAddressPrivatekey = async (accountKey: any, type: number, index: number) => {
   const spendingKey = accountKey
-        .derive(type) // 0 external || 1 change || 2 stake key
-        .derive(index); // index
+    .derive(type) // 0 external || 1 change || 2 stake key
+    .derive(index); // index
   return spendingKey;
 };
