@@ -1,6 +1,6 @@
 // import { TxBuilder, Address, Hash28, Hash, UTxO, Value, TxOut, VKeyWitness, VKey } from "@harmoniclabs/plu-ts";
 import * as pluts from "@harmoniclabs/plu-ts";
-import { koiosAPI, kupoAPI, genKeys, a2hex, splitAsset, fromHexString, fromHex, toHex } from "./utils.ts";
+import {  splitAsset, fromHex } from "./utils.ts";
 
 export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsKupo: any, utxoInputsCBOR: any, utxoOutputs: any, changeAddress: any, accountAddressKeyPrv: any) => {
   // console.log(protocolParameters);
@@ -43,7 +43,7 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsK
         },
         resolved: {
           address: pluts.Address.fromString(utxo.address),
-          value: await createInputValues(utxo),
+          value: await createInputValuesKupo(utxo),
           // datum: [], // parse kupo datum
           // refScript: [] // look for ref script if any
         },
@@ -59,7 +59,7 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsK
   Creating outputs for receiving address
   #############################d############################################################################
   */
-  let outputsParsed: any = [];
+  let outputsParsed: pluts.TxOut[] = []; 
   Promise.all(  
     await utxoOutputs.map(async (output: any ) => {
       outputsParsed.push(new pluts.TxOut({
@@ -70,7 +70,18 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsK
       }));
     })
   );
-  // console.log("outputsParsed", outputsParsed);
+  console.log("outputsParsed", outputsParsed[1].toCbor().toString());
+
+  let minUtxoCost = txBuilder.getMinimumOutputLovelaces( outputsParsed[1].toCbor().toString());
+  console.log("minUtxoCost", minUtxoCost);
+
+  const metadataJson: any = {
+    label: 420,
+    message: "Hello World"
+  };
+
+  const txMetadata = pluts.jsonToMetadata(metadataJson, false);
+  console.log("txMetadata", txMetadata);
 
 
   /*
@@ -81,31 +92,19 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsK
   const ttl = 500000000;
 
   try {
-    let builtTx = txBuilder.buildSync({ inputs: inputsKupoParsed, changeAddress, outputs: outputsParsed, invalidAfter: ttl});
-    // console.log("builtTx", builtTx.hash);
-    // console.log("builtTx fee", builtTx.body.outputs[0].value.lovelaces);
-    // console.log("builtHash", builtTx.hash);
-    // console.log("minUtxo", txBuilder.getMinimumOutputLovelaces( builtTx.hash));
-    
+    let builtTx = txBuilder.buildSync({ inputs: inputsKupoParsed, changeAddress, outputs: outputsParsed, invalidAfter: ttl});   
     // Sign tx hash
-    // console.log("Singing body hash: ", builtTx.hash)
-    const signedTx = accountAddressKeyPrv.sign(builtTx);
-    // console.log("signedTx pubKey", signedTx.pubKey);
-
-    // add tx vkeys
-    // builtTx.addVKeyWitness(new pluts.VKeyWitness(new pluts.VKey(signedTx.pubKey), new pluts.Signature(signedTx.signature)));
+    const signedTx = accountAddressKeyPrv.sign(builtTx.body.hash.toBuffer());
+    // console.log("txBuffer", builtTx.body.hash.toBuffer());
     
     const VKeyWitness = new pluts.VKeyWitness(new pluts.VKey(signedTx.pubKey), new pluts.Signature(signedTx.signature));
-    console.log("VKeyWitness", VKeyWitness);
-
-    builtTx.addVKeyWitness(VKeyWitness);
-
+    // console.log("VKeyWitness", VKeyWitness);
+    builtTx.witnesses.addVKeyWitness(VKeyWitness);
     const txCBOR = builtTx.toCbor().toString();
     console.log("builtTx", builtTx);
     console.log("txCBOR", txCBOR);
-    console.log("builtTx", builtTx.hash);
+    // console.log("builtTx hash: ", builtTx.hash);
     console.log("builtTx complete: ", builtTx.isComplete);
-
   } catch (error) {
     console.log("txBuilder.buildSync", error);
   };
@@ -116,7 +115,7 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsK
 This function will create UTXO input values like: UTXO lovelaces and UTXO assets for PLU-TS
 #############################d############################################################################
 */
-const createInputValues = async (kupoUtxo: any) => {
+const createInputValuesKupo = async (kupoUtxo: any) => {
   // console.log("kupoUtxo", kupoUtxo);
   // for now will just pick first utxo object from array
   let kupoAssets: any = [];
@@ -146,20 +145,22 @@ This function will create UTXO outputs meaning sending to someone from following
     assets: {
       "b88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12a.4d65726b616261232d33": 1,
       "b88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12a.4d65726b616261232d32": 1,
-      "b812d5a466604bcc25d2313183c387cebf52302738b5a178daf146f0.4d616e64616c612332": 1
+      "b812d5a466604bcc25d2313183c387cebf52302738b5a178daf146f0.4d616e64616c612332": 1,
+      "b812d5a466604bcc25d2313183c387cebf52302738b5a178daf146f0.4d616e64616c612331": 1
     }
   }
 }
 #############################d############################################################################
 */
-const createOutputValues = async (output: any) => {
+const createOutputValues = async ( output: any) => {
   // console.log("output", output);
   let outputAssets: any = [];
+  const minUtxo = calcMinUtxo(output.value.assets);
   Promise.all(
     Object.entries(output.value).map(([key, value]: any) => {
       // console.log("key", key);
       // console.log("value", value);
-      key === "coins" && ( outputAssets.push( pluts.Value.lovelaces(output.value.coins)));
+      key === "coins" && ( outputAssets.push( pluts.Value.lovelaces(output.value.coins + minUtxo)));
       key === "assets" &&  Object.entries(value).length > 0 &&
         Object.entries(value).map(([asset, quantity]: any) => {    
           let assetNew = pluts.Value.singleAsset(new pluts.Hash28(splitAsset(asset)[0]), fromHex(splitAsset(asset)[1]), quantity)
@@ -168,6 +169,12 @@ const createOutputValues = async (output: any) => {
     })
   );
   return( outputAssets.reduce(pluts.Value.add));
+};
+
+const calcMinUtxo = (assets: any) => {
+  // console.log("assets", assets)
+  const minutxo = (Object.entries(assets).length * 116200);
+  return(minutxo);
 };
 
 /*

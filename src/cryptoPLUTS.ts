@@ -17,7 +17,7 @@ export const genSeedPhrase = async () => {
   }
 };
 
-export const validateSeedPhrase = async (seed: any) => {
+export const validateSeedPhrase = async (seed: string) => {
   try {
     const validate = validateMnemonic(seed);
     return validate;
@@ -31,9 +31,9 @@ export const seedPhraseToEntropy = async (seed_phrase: string) => {
   return mnemonicToEntropy(seed_phrase);
 };
 
-export const genRootPrivateKey = async (entropy: any) => {
+export const genRootPrivateKey = async (entropy: Uint8Array) => {
   try{
-    const rootKey = plutsBip.XPrv.fromEntropy(Buffer.from(entropy, "hex"), "");
+    const rootKey: plutsBip.XPrv = plutsBip.XPrv.fromEntropy(entropy, "");
     // console.log("rootKey", rootKey);
     return(rootKey)
   } catch (error) {
@@ -42,7 +42,7 @@ export const genRootPrivateKey = async (entropy: any) => {
 };
 
 
-export const genAccountPrivatekey= async (rootKey: any, index: any ) => {
+export const genAccountPrivatekey = async (rootKey: plutsBip.XPrv, index: number ) => {
   // hardened derivation
   const accountKey = rootKey
     .derive(harden(1852)) // purpose
@@ -56,4 +56,24 @@ export const genAddressPrivatekey = async (accountKey: any, type: number, index:
     .derive(type) // 0 external || 1 change || 2 stake key
     .derive(index); // index
   return spendingKey;
+};
+
+export const encrypt = async (passPhrase: string, text: string) => {
+  try {
+    const encrypted = await CryptoJS.AES.encrypt(JSON.stringify(text), passPhrase).toString();
+    return encrypted;
+  } catch (error) {
+    console.log("encrypt error", error);
+    return error;
+  }
+};
+
+export const decrypt = async (passPhrase: string, text: string) => {
+  try {
+    const decrypted = await CryptoJS.AES.decrypt(text, passPhrase).toString(CryptoJS.enc.Utf8);
+    return decrypted;
+  } catch (error) {
+    console.log("decreypt error", error);
+    return error;
+  }
 };

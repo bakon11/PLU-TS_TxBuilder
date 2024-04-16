@@ -1,14 +1,11 @@
 import * as fs from "node:fs";
-// import { TxBuilder, Address, Hash32, Hash28, Hash, UTxO, Value, TxOut, VKeyWitness, VKey, PrivateKey  } from "@harmoniclabs/plu-ts";
 import { koiosAPI, kupoAPI, genKeys, a2hex, splitAsset, fromHexString, fromHex, toHex, hex2a, constructKoiosProtocolParams, ogmiosHealth } from "./utils.ts";
-import { genSeedPhrase, seedPhraseToEntropy, genRootPrivateKey, genAccountPrivatekey, genAddressPrivatekey} from "./cryptoPLUTS.ts"
-import { genRootPrivateKey1, seedPhraseToEntropy1, genAccountKeyPrv, genAddressSigningKey } from "./cryptoWASM.ts";
-import { seedPhraseToEntropy3, genRootPrivateKey3 } from "./cryptoTEST.ts"; 
+import { genSeedPhrase, seedPhraseToEntropy, genRootPrivateKey, genAccountPrivatekey, genAddressPrivatekey } from "./cryptoPLUTS.ts"
 import { txBuilder_PLUTS } from "./txbuilderPLUTS.ts";
 import * as pluts from "@harmoniclabs/plu-ts";
 // import { blake2b_224 } from "@harmoniclabs/crypto";
 import * as plutsBip from "@harmoniclabs/bip32_ed25519";
-import * as CLMwasm from "@dcspark/cardano-multiplatform-lib-nodejs";
+import { decrypt } from "./cryptoPLUTS.ts";
 
 
 const buildTx = async () => {
@@ -30,7 +27,7 @@ const buildTx = async () => {
   
   /*
   ##########################################################################################################
-  Parse PraotocolParams from Koios API V1
+  Parse PraotocolParams from Ogmios
   #############################d############################################################################
   */
   // const ogmiosHealthRes = await ogmiosHealth();
@@ -42,25 +39,21 @@ const buildTx = async () => {
   #############################d############################################################################
   */
   const defaultProtocolParameters = await constructKoiosProtocolParams(protocolParamsKoiosRes);
+  // console.log("defaultProtocolParameters", defaultProtocolParameters);
 
   /*
   ##########################################################################################################
   CIP30 getUtxos() method CBORs example for now.
   ##########################################################################################################
   */
-  let cborInputs = [
-    "828258201c9be6d02e59e5f944eb630fdd5fcf26c5a17f8c03ebd5bcf32e6c8e008310890182583901130768a0e391b8c77be560580729ec927393e688991929129e609a4bb093f044b77f2fb13ce1828c954b1858ac9f76935e74e391c4255e721a00114a4c",
-    "82825820f486c85056d208a423af09a96f3744746e304a77b7c61d955c3fe8afeb1534730082583901130768a0e391b8c77be560580729ec927393e688991929129e609a4bb093f044b77f2fb13ce1828c954b1858ac9f76935e74e391c4255e72821a012df827a2581cb812d5a466604bcc25d2313183c387cebf52302738b5a178daf146f0a6494d616e64616c6123311864494d616e64616c6123321864494d616e64616c6123331864494d616e64616c6123341864494d616e64616c6123351864494d616e64616c6123361864581cb88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12aa8494d65726b61626123301864494d65726b61626123311864494d65726b61626123321864494d65726b61626123331864494d65726b616261233418644a4d65726b616261232d3118644a4d65726b616261232d3218644a4d65726b616261232d331864",
-  ]; 
+  let cborInputs: any = [];
   
   /*
   ##########################################################################################################
   Use when using UTXO info from other sources like Kupo indexer or BLockfrost
   #############################d############################################################################
   */
-  const inputAddress = "addr1qyfsw69quwgm33mmu4s9spefajf88ylx3zv3j2gjnesf5jasj0cyfdml97cnecvz3j25kxzc4j0hdy67wn3er3p9teeq6ahdpn";
-  let kupoInputs: any = await kupoAPI(`matches/${inputAddress}?unspent`);
-  // let kupoInputs: any = await kupoAPI(`matches/${JSON.parse(keys).baseAddress_bech32}?unspent`);
+  let kupoInputs: any = await kupoAPI(`matches/${JSON.parse(keys).baseAddress_bech32}?unspent`);
   // console.log("kupoInputs", kupoInputs);
 
   /*
@@ -84,7 +77,21 @@ const buildTx = async () => {
         assets: {
           "b88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12a.4d65726b616261232d33": 1,
           "b88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12a.4d65726b616261232d32": 1,
-          "b812d5a466604bcc25d2313183c387cebf52302738b5a178daf146f0.4d616e64616c612332": 1
+          "b88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12a.4d65726b616261232d31": 1,
+          "b812d5a466604bcc25d2313183c387cebf52302738b5a178daf146f0.4d616e64616c612332": 1,
+          "b812d5a466604bcc25d2313183c387cebf52302738b5a178daf146f0.4d616e64616c612331": 1,
+          "b812d5a466604bcc25d2313183c387cebf52302738b5a178daf146f0.4d616e64616c612333": 1
+        }
+      }
+    },
+    {
+      address: "addr1q9shhjkju8aw2fpt4ttdnzrqcdacaegpglfezen33kq9l2wcdqua0w5yj7d8thpulynjly2yrhwxvdhtrxqjpmy60uqs4h7cyp",
+      value: {
+        coins: 1000000,
+        assets: {
+          "b88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12a.4d65726b616261232d33": 1,
+          "b88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12a.4d65726b616261232d32": 1,
+          "b88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12a.4d65726b616261232d31": 1,
         }
       }
     }
@@ -98,44 +105,48 @@ const buildTx = async () => {
   #############################d############################################################################
   */
  
-  //  genRootPrivateKeyNew, genAccountPrivatekeyNew, genAddressPrivatekeyNew, genAddressPubKeyNew
+  // genRootPrivateKeyNew, genAccountPrivatekeyNew, genAddressPrivatekeyNew, genAddressPubKeyNew
   // const rootXPRV: any = await decrypt( JSON.parse(keys).walletPassword ,JSON.parse(keys).rootXPRV);
   // console.log("rootXPRV", JSON.parse(rootXPRV));
   
-  const entropy = await seedPhraseToEntropy(JSON.parse(keys).seedPhrase);
-  console.log("entropy  plu-ts", entropy);
-  const entropy1 = await seedPhraseToEntropy1(JSON.parse(keys).seedPhrase);
-  console.log("entropy CML", entropy1);
+  // const entropy: string = await seedPhraseToEntropy(JSON.parse(keys).seedPhrase);
+  // console.log("entropy  plu-ts", entropy);
+  // const entropy1 = await seedPhraseToEntropy1(JSON.parse(keys).seedPhrase);
+  // console.log("entropy CML", entropy1);
   // const entropy3 = await seedPhraseToEntropy3(JSON.parse(keys).seedPhrase);
   // console.log("entropy test", entropy3);
+  
+  const entropyDecrypt = await decrypt(JSON.parse(keys).walletPassword, JSON.parse(keys).entropyEncrypt);
+  // console.log("entropyDecrypted", entropyDecrypt);
+  const entropy = JSON.parse(entropyDecrypt);
 
   console.log("#################################################################");
 
-  const rootKey = await genRootPrivateKey(entropy);
-  console.log("rootKey  plu-ts: ",  rootKey?.bytes);
-  const rootKey1 = await genRootPrivateKey1(entropy1);
-  console.log("rootKey  CML: ", rootKey1.as_bytes());
+  const rootKey: plutsBip.XPrv | undefined = await genRootPrivateKey(Buffer.from(entropy, "hex"));
+  // console.log("rootKey  plu-ts: ",  rootKey?.bytes);
+  // const rootKey1 = await genRootPrivateKey1(entropy1);
+  // console.log("rootKey  CML: ", rootKey1.as_bytes());
   // const rootKey3 = await genRootPrivateKey3(entropy3);
   // console.log("rootKey  test: ", rootKey3);
 
-  console.log("#################################################################")
+  // console.log("#################################################################")
 
-  const accountKeyPrv = await genAccountPrivatekey(rootKey, 0);
+  const accountKeyPrv = await genAccountPrivatekey(rootKey as plutsBip.XPrv, 0);
   // console.log("accountKeyPrv plu-ts", accountKeyPrv);
-  const accountKeyPrvCML = await genAccountKeyPrv(rootKey1, 1852, 1815, 0);
+  // const accountKeyPrvCML = await genAccountKeyPrv(rootKey1, 1852, 1815, 0);
   // console.log("accountKey CML", accountKeyPrvCML);
   
-  console.log("#################################################################")
+  // console.log("#################################################################")
 
   const accountAddressKeyPrv = await genAddressPrivatekey(accountKeyPrv, 0, 0)
-  console.log("addressKey Prv pluts: ", plutsBip.XPrv.fromBytes(accountAddressKeyPrv.bytes));
-  console.log("addressKey Prv pluts: ", accountAddressKeyPrv);
+  // console.log("addressKey Prv pluts: ", plutsBip.XPrv.fromBytes(accountAddressKeyPrv.bytes));
+  // console.log("addressKey Prv pluts: ", accountAddressKeyPrv);
   // console.log("accountAddressKeyPrv: ", blake2b_224((accountAddressKeyPrv.bytes)));
   // const accountAddressKeyPub = accountAddressKeyPrv.public();
   // console.log("accountAddress Key Hash from @harmoniclabs/bip32_ed25519 ", toHex( blake2b_224(accountAddressKeyPub.toPubKeyBytes())));
   // console.log("input address hash", pluts.Address.fromString(inputAddress).paymentCreds.hash.toString())
-  const addressKeyPrvCML = await genAddressSigningKey(accountKeyPrvCML, 0);
-  console.log("addressKey prv CML: ", addressKeyPrvCML.as_bytes());
+  // const addressKeyPrvCML = await genAddressSigningKey(accountKeyPrvCML, 0);
+  // console.log("addressKey prv CML: ", addressKeyPrvCML.as_bytes());
 
   // console.log("#################################################################")
 
