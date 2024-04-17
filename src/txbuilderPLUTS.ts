@@ -64,25 +64,22 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsK
     await utxoOutputs.map(async (output: any ) => {
       outputsParsed.push(new pluts.TxOut({
         address: pluts.Address.fromString(output.address),
-        value: await createOutputValues(output), // parse kupo value
+        value: await createOutputValues(output, txBuilder), // parse kupo value
         // datum: [], // parse kupo datum
         // refScript: [] // look for ref script if any
       }));
     })
   );
-  console.log("outputsParsed", outputsParsed[1].toCbor().toString());
+  // console.log("outputsParsed", outputsParsed);
 
-  let minUtxoCost = txBuilder.getMinimumOutputLovelaces( outputsParsed[1].toCbor().toString());
-  console.log("minUtxoCost", minUtxoCost);
-
-  const metadataJson: any = {
+  const metadataJson: any = [{
     label: 420,
-    message: "Hello World"
-  };
+    message: "Hello World",
+    message2: "second item"
+  }];
 
-  const txMetadata = pluts.jsonToMetadata(metadataJson, false);
-  console.log("txMetadata", txMetadata);
-
+  const txMeta = pluts.jsonToMetadata(metadataJson);
+  console.log("txMeta", txMeta);
 
   /*
   ##########################################################################################################
@@ -152,15 +149,14 @@ This function will create UTXO outputs meaning sending to someone from following
 }
 #############################d############################################################################
 */
-const createOutputValues = async ( output: any) => {
+const createOutputValues = async ( output: any, txBuilder: any ) => {
   // console.log("output", output);
   let outputAssets: any = [];
-  const minUtxo = calcMinUtxo(output.value.assets);
   Promise.all(
     Object.entries(output.value).map(([key, value]: any) => {
       // console.log("key", key);
       // console.log("value", value);
-      key === "coins" && ( outputAssets.push( pluts.Value.lovelaces(output.value.coins + minUtxo)));
+      key === "coins" && ( outputAssets.push( pluts.Value.lovelaces(output.value.coins)));
       key === "assets" &&  Object.entries(value).length > 0 &&
         Object.entries(value).map(([asset, quantity]: any) => {    
           let assetNew = pluts.Value.singleAsset(new pluts.Hash28(splitAsset(asset)[0]), fromHex(splitAsset(asset)[1]), quantity)
@@ -168,13 +164,27 @@ const createOutputValues = async ( output: any) => {
         });
     })
   );
-  return( outputAssets.reduce(pluts.Value.add));
-};
+  let outputParsed = outputAssets.reduce(pluts.Value.add)
+  console.log("outputParsed", outputParsed.toCbor().toString());
+  const minUtxo = txBuilder.getMinimumOutputLovelaces(outputParsed.toCbor().toString());
+  console.log("minUtxo", Number(minUtxo));
 
-const calcMinUtxo = (assets: any) => {
-  // console.log("assets", assets)
-  const minutxo = (Object.entries(assets).length * 116200);
-  return(minutxo);
+  outputAssets = [];
+  Promise.all(
+    Object.entries(output.value).map(([key, value]: any) => {
+      // console.log("key", key);
+      // console.log("value", value);
+      key === "coins" && ( outputAssets.push( pluts.Value.lovelaces(output.value.coins + Number(minUtxo))));
+      key === "assets" &&  Object.entries(value).length > 0 &&
+        Object.entries(value).map(([asset, quantity]: any) => {    
+          let assetNew = pluts.Value.singleAsset(new pluts.Hash28(splitAsset(asset)[0]), fromHex(splitAsset(asset)[1]), quantity)
+          outputAssets.push(assetNew);
+        });
+    })
+  );
+  outputParsed = outputAssets.reduce(pluts.Value.add)
+  console.log("outputParsed", outputParsed.toCbor().toString());
+  return( outputParsed );
 };
 
 /*

@@ -80,11 +80,13 @@ const buildTx = async () => {
           "b88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12a.4d65726b616261232d31": 1,
           "b812d5a466604bcc25d2313183c387cebf52302738b5a178daf146f0.4d616e64616c612332": 1,
           "b812d5a466604bcc25d2313183c387cebf52302738b5a178daf146f0.4d616e64616c612331": 1,
-          "b812d5a466604bcc25d2313183c387cebf52302738b5a178daf146f0.4d616e64616c612333": 1
+          "b812d5a466604bcc25d2313183c387cebf52302738b5a178daf146f0.4d616e64616c612333": 1,
+          "b812d5a466604bcc25d2313183c387cebf52302738b5a178daf146f0.4d616e64616c612334": 1
         }
       }
-    },
-    {
+    }
+    /*
+    ,{
       address: "addr1q9shhjkju8aw2fpt4ttdnzrqcdacaegpglfezen33kq9l2wcdqua0w5yj7d8thpulynjly2yrhwxvdhtrxqjpmy60uqs4h7cyp",
       value: {
         coins: 1000000,
@@ -94,7 +96,7 @@ const buildTx = async () => {
           "b88d9fe270b184cf02c99b19ffa5ab0181daeff00c52811c6511c12a.4d65726b616261232d31": 1,
         }
       }
-    }
+    }*/
   ];
 
   /*
