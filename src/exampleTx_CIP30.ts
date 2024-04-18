@@ -1,5 +1,5 @@
 import * as fs from "node:fs";
-import { koiosAPI, kupoAPI, genKeys, a2hex, splitAsset, fromHexString, fromHex, toHex, hex2a, constructKoiosProtocolParams, ogmiosHealth } from "./utils.ts";
+import { koiosAPI, kupoAPI, constructKoiosProtocolParams } from "./utils.ts";
 import { genSeedPhrase, seedPhraseToEntropy, genRootPrivateKey, genAccountPrivatekey, genAddressPrivatekey } from "./cryptoPLUTS.ts"
 import { txBuilder_PLUTS } from "./txbuilderPLUTS.ts";
 import * as pluts from "@harmoniclabs/plu-ts";
@@ -7,16 +7,8 @@ import * as pluts from "@harmoniclabs/plu-ts";
 import * as plutsBip from "@harmoniclabs/bip32_ed25519";
 import { decrypt } from "./cryptoPLUTS.ts";
 
-
-const buildTx = async () => {
-  /*
-  ##########################################################################################################
-  Keys.json file contianing all addresses and encrypted private keys, created with the genKeys() function.
-  Look at example keysExample.json file
-  #############################d############################################################################
-  */
-  let keys = fs.readFileSync("keys.json", "utf8");
-
+const buildTx = async ( ) => {
+    const changeAddress = "addr1q9shhjkju8aw2fpt4ttdnzrqcdacaegpglfezen33kq9l2wcdqua0w5yj7d8thpulynjly2yrhwxvdhtrxqjpmy60uqs4h7cyp"  
   /*
   ##########################################################################################################
   Fetching ProtocolParams from Koios API V1
@@ -53,16 +45,8 @@ const buildTx = async () => {
   Use when using UTXO info from other sources like Kupo indexer or BLockfrost
   #############################d############################################################################
   */
-  let kupoInputs: any = await kupoAPI(`matches/${JSON.parse(keys).baseAddress_bech32}?unspent`);
+  let kupoInputs = await kupoAPI(`matches/${changeAddress}?unspent`);
   // console.log("kupoInputs", kupoInputs);
-
-  /*
-  ##########################################################################################################
-  Change address: address that will receive whats left over from spent UTXOS.
-  #############################d############################################################################
-  */
-  const changeAddress = JSON.parse(keys).baseAddress_bech32;
-  // console.log("changeAddress", changeAddress);
 
   /*
   ##########################################################################################################
@@ -85,7 +69,6 @@ const buildTx = async () => {
         }
       }
     }
-    
     ,{
       address: "addr1q9shhjkju8aw2fpt4ttdnzrqcdacaegpglfezen33kq9l2wcdqua0w5yj7d8thpulynjly2yrhwxvdhtrxqjpmy60uqs4h7cyp",
       value: {
@@ -111,54 +94,6 @@ const buildTx = async () => {
     }
   };
 
-  /*
-  ##########################################################################################################
-  For example purposes will regenerate keys from seed and entropy contained in the keys.json file.
-  (check keys.json.ecample file for reference)
-  However this is not secure and will be corrected in the future.
-  #############################d############################################################################
-  */
  
-  const entropyDecrypt = await decrypt(JSON.parse(keys).walletPassword, JSON.parse(keys).entropyEncrypt);
-  // console.log("entropyDecrypted", entropyDecrypt);
-  const entropy = JSON.parse(entropyDecrypt);
-
-  console.log("#################################################################");
-
-  const rootKey: plutsBip.XPrv | undefined = await genRootPrivateKey(Buffer.from(entropy, "hex"));
-  // console.log("rootKey  plu-ts: ",  rootKey?.bytes);
-  // const rootKey1 = await genRootPrivateKey1(entropy1);
-  // console.log("rootKey  CML: ", rootKey1.as_bytes());
-  // const rootKey3 = await genRootPrivateKey3(entropy3);
-  // console.log("rootKey  test: ", rootKey3);
-
-  // console.log("#################################################################")
-
-  const accountKeyPrv = await genAccountPrivatekey(rootKey as plutsBip.XPrv, 0);
-  // console.log("accountKeyPrv plu-ts", accountKeyPrv);
-  // const accountKeyPrvCML = await genAccountKeyPrv(rootKey1, 1852, 1815, 0);
-  // console.log("accountKey CML", accountKeyPrvCML);
-  
-  // console.log("#################################################################")
-
-  const accountAddressKeyPrv = await genAddressPrivatekey(accountKeyPrv, 0, 0)
-  // console.log("addressKey Prv pluts: ", plutsBip.XPrv.fromBytes(accountAddressKeyPrv.bytes));
-  // console.log("addressKey Prv pluts: ", accountAddressKeyPrv);
-  // console.log("accountAddressKeyPrv: ", blake2b_224((accountAddressKeyPrv.bytes)));
-  // const accountAddressKeyPub = accountAddressKeyPrv.public();
-  // console.log("accountAddress Key Hash from @harmoniclabs/bip32_ed25519 ", toHex( blake2b_224(accountAddressKeyPub.toPubKeyBytes())));
-  // console.log("input address hash", pluts.Address.fromString(inputAddress).paymentCreds.hash.toString())
-  // const addressKeyPrvCML = await genAddressSigningKey(accountKeyPrvCML, 0);
-  // console.log("addressKey prv CML: ", addressKeyPrvCML.as_bytes());
-
-  // console.log("#################################################################")
-
-  // console.log("accountAddress Key Hash from", toHex(addressKeyPrvCML.to_public().to_raw_key().hash().to_bytes()));
-
-  await txBuilder_PLUTS(defaultProtocolParameters, kupoInputs, cborInputs, utxoOutputs, changeAddress, accountAddressKeyPrv, metadata);
+  await txBuilder_PLUTS(defaultProtocolParameters, kupoInputs, cborInputs, utxoOutputs, changeAddress, metadata);
 };
-
-buildTx();
-
-
-// genKeys();

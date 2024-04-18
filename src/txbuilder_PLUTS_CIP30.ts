@@ -1,8 +1,9 @@
 // import { TxBuilder, Address, Hash28, Hash, UTxO, Value, TxOut, VKeyWitness, VKey } from "@harmoniclabs/plu-ts";
 import * as pluts from "@harmoniclabs/plu-ts";
-import {  splitAsset, fromHex } from "./utils.ts";
+import {  splitAsset, fromHex } from "./utils";
+declare const window: any;
 
-export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsKupo: any, utxoInputsCBOR: any, utxoOutputs: any, changeAddress: any, accountAddressKeyPrv: any, metadata: any ) => {
+export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsKupo: any, utxoInputsCBOR: any, utxoOutputs: any, changeAddress: any, metadata: any ) => {
   // console.log(protocolParameters);
   // console.log(utxoInputs[0].value);
   // console.log(utxoInputsCBOR);
@@ -83,8 +84,8 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsK
   // console.log("txMeta", txMeta);
 
 
-  // const stakeCred = accountAddressKeyPrv
-  // console.log("stakeCred", stakeCred);
+  // const stakeCred = accountAddressKeyPrv.;
+  //console.log("stakeCred", stakeCred);
   // const delegateCerts = new pluts.Certificate(pluts.CertificateType.StakeDelegation, accountAddressKeyPrv.stake_cred(), 0);
 
   /*
@@ -96,13 +97,19 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsK
 
   try {
     let builtTx = txBuilder.buildSync({ inputs: inputsKupoParsed, changeAddress, outputs: outputsParsed, invalidAfter: ttl, metadata: txMeta});   
-    // Sign tx hash
-    const signedTx = accountAddressKeyPrv.sign(builtTx.body.hash.toBuffer());
-    // console.log("txBuffer", builtTx.body.hash.toBuffer());
     
-    const VKeyWitness = new pluts.VKeyWitness(new pluts.VKey(signedTx.pubKey), new pluts.Signature(signedTx.signature));
+    // Sign tx hash
+    const connectedWallet: any = await JSON.parse(localStorage.getItem("connectedWallet") || '{}');
+    // CIP30 wallet connect
+    const walletApi = await window.cardano[connectedWallet.selectedWallet].enable();
+    builtTx.signWithCip30Wallet(walletApi);
+
+    // const signedTx = accountAddressKeyPrv.sign(builtTx.body.hash.toBuffer());
+    // console.log("txBuffer", builtTx.body.hash.toBuffer());
+    // const VKeyWitness = new pluts.VKeyWitness(new pluts.VKey(signedTx.pubKey), new pluts.Signature(signedTx.signature));
     // console.log("VKeyWitness", VKeyWitness);
-    builtTx.witnesses.addVKeyWitness(VKeyWitness);
+    // builtTx.witnesses.addVKeyWitness(VKeyWitness);
+
     const txCBOR = builtTx.toCbor().toString();
     console.log("builtTx", builtTx);
     console.log("txCBOR", txCBOR);
