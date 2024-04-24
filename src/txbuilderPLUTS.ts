@@ -32,6 +32,7 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsK
   Generate inputs from utxoInputsKupo
   #############################d############################################################################
   */
+  utxoInputsKupo = await selectInputs(utxoInputsKupo, utxoOutputs);
   let inputs: any = [];
   Promise.all(
     await utxoInputsKupo.map(async (utxo: any) => {
@@ -84,7 +85,7 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsK
 
 
   // const stakeCred = accountAddressKeyPrv
-  // console.log("stakeCred", stakeCred);
+  //v console.log("stakeCred", stakeCred);
   // const delegateCerts = new pluts.Certificate(pluts.CertificateType.StakeDelegation, accountAddressKeyPrv.stake_cred(), 0);
 
   /*
@@ -137,7 +138,50 @@ const createInputValuesKupo = async (kupoUtxo: any) => {
   // console.log("kupoAssets", kupoAssets);
   return( kupoAssets.reduce(pluts.Value.add));
 };
+/*
+##########################################################################################################
+Select smallest and minimum amount of input utxos to satsify the output UTXOs for the TX
+#############################d############################################################################
+*/
+const selectInputs = async ( utxosInputs: any, utxoOutputs: any ) => {
+  console.log("utxosInputs", utxosInputs);
+  console.log("utxoOutputs", utxoOutputs);
 
+  let selectedInputs: any = [];
+  let lovelacesNeeded = 0;
+  let lovelacesAvailable = 0;
+  let percentError = 0;
+  
+  utxoOutputs.map((output: any) => {
+    Object.entries(output.value.assets).map(([key, value]: any) => {
+      // key === "assets" &&  Object.entries(value).length > 0 && console.log("key", key);
+      // key === "assets" &&  Object.entries(value).length > 0 && console.log("value", value);
+      // console.log("key", key);
+      // console.log("value", value);
+      utxosInputs.filter((utxo: any) => {
+        // utxo.value.assets.hasOwnProperty(key) && console.log("utxo", utxo);
+        utxo.value.assets.hasOwnProperty(key) && selectedInputs.push(utxo);
+      });
+    });
+  });
+
+  lovelacesNeeded = utxoOutputs.reduce((acc: any, output: any) => {
+    return acc + output.value.coins;
+  }, 0);
+  console.log("lovelacesNeeded", lovelacesNeeded);
+
+  lovelacesAvailable = utxosInputs.reduce((acc: any, utxo: any) => {
+    return acc + utxo.value.coins;
+  }, 0);
+  console.log("lovelacesAvailable", lovelacesAvailable);
+
+  percentError = ( lovelacesNeeded * 5 + lovelacesNeeded );
+  console.log("percentError", percentError);
+
+  if(lovelacesNeeded < lovelacesAvailable) return(selectedInputs);
+
+  // console.log("filter input lovelace: ", utxosInputs.filter((utxo: any) => utxo.value.coins > lovelacesNeeded && utxo.value.coins < percentError));
+};
 /*
 ##########################################################################################################
 This function will create UTXO outputs meaning sending to someone from following Object

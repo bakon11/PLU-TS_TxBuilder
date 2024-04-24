@@ -33,6 +33,7 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsK
   Generate inputs from utxoInputsKupo
   #############################d############################################################################
   */
+  utxoInputsKupo = await selectInputs(utxoInputsKupo, utxoOutputs);
   let inputs: any = [];
   Promise.all(
     await utxoInputsKupo.map(async (utxo: any) => {
@@ -99,22 +100,30 @@ export const txBuilder_PLUTS: any = async ( protocolParameters: any, utxoInputsK
     let builtTx = txBuilder.buildSync({ inputs: inputsKupoParsed, changeAddress, outputs: outputsParsed, invalidAfter: ttl, metadata: txMeta});   
     
     // Sign tx hash
-    const connectedWallet: any = await JSON.parse(localStorage.getItem("connectedWallet") || '{}');
+    const connectedWallet: any = "eternl";
     // CIP30 wallet connect
-    const walletApi = await window.cardano[connectedWallet.selectedWallet].enable();
-    builtTx.signWithCip30Wallet(walletApi);
+    const walletApi = await window.cardano[connectedWallet].enable();
+    // builtTx.signWithCip30Wallet(walletApi);
+    console.log("walletApi", walletApi);
 
-    // const signedTx = accountAddressKeyPrv.sign(builtTx.body.hash.toBuffer());
-    // console.log("txBuffer", builtTx.body.hash.toBuffer());
-    // const VKeyWitness = new pluts.VKeyWitness(new pluts.VKey(signedTx.pubKey), new pluts.Signature(signedTx.signature));
-    // console.log("VKeyWitness", VKeyWitness);
-    // builtTx.witnesses.addVKeyWitness(VKeyWitness);
+    const wits = pluts.TxWitnessSet.fromCbor(
+      await walletApi.signTx(
+          builtTx.toCbor().toString(),
+          true
+      )
+    );
+
+    for( const wit of wits.vkeyWitnesses! ){
+      builtTx.addVKeyWitness( wit );
+    };
 
     const txCBOR = builtTx.toCbor().toString();
     console.log("builtTx", builtTx);
     console.log("txCBOR", txCBOR);
+   
     // console.log("builtTx hash: ", builtTx.hash);
     console.log("builtTx complete: ", builtTx.isComplete);
+    
   } catch (error) {
     console.log("txBuilder.buildSync", error);
   };
@@ -144,7 +153,50 @@ const createInputValuesKupo = async (kupoUtxo: any) => {
   // console.log("kupoAssets", kupoAssets);
   return( kupoAssets.reduce(pluts.Value.add));
 };
+/*
+##########################################################################################################
+Select smallest and minimum amount of input utxos to satsify the output UTXOs for the TX
+#############################d############################################################################
+*/
+const selectInputs = async ( utxosInputs: any, utxoOutputs: any ) => {
+  console.log("utxosInputs", utxosInputs);
+  console.log("utxoOutputs", utxoOutputs);
 
+  let selectedInputs: any = [];
+  let lovelacesNeeded = 0;
+  let lovelacesAvailable = 0;
+  let percentError = 0;
+  
+  utxoOutputs.map((output: any) => {
+    Object.entries(output.value.assets).map(([key, value]: any) => {
+      // key === "assets" &&  Object.entries(value).length > 0 && console.log("key", key);
+      // key === "assets" &&  Object.entries(value).length > 0 && console.log("value", value);
+      // console.log("key", key);
+      // console.log("value", value);
+      utxosInputs.filter((utxo: any) => {
+        // utxo.value.assets.hasOwnProperty(key) && console.log("utxo", utxo);
+        utxo.value.assets.hasOwnProperty(key) && selectedInputs.push(utxo);
+      });
+    });
+  });
+
+  lovelacesNeeded = utxoOutputs.reduce((acc: any, output: any) => {
+    return acc + output.value.coins;
+  }, 0);
+  console.log("lovelacesNeeded", lovelacesNeeded);
+
+  lovelacesAvailable = utxosInputs.reduce((acc: any, utxo: any) => {
+    return acc + utxo.value.coins;
+  }, 0);
+  console.log("lovelacesAvailable", lovelacesAvailable);
+
+  percentError = ( lovelacesNeeded * 5 + lovelacesNeeded );
+  console.log("percentError", percentError);
+
+  if(lovelacesNeeded < lovelacesAvailable) return(selectedInputs);
+
+  // console.log("filter input lovelace: ", utxosInputs.filter((utxo: any) => utxo.value.coins > lovelacesNeeded && utxo.value.coins < percentError));
+};
 /*
 ##########################################################################################################
 This function will create UTXO outputs meaning sending to someone from following Object
@@ -169,7 +221,7 @@ const createOutputValues = async ( output: any, txBuilder: any ) => {
     Object.entries(output.value).map(([key, value]: any) => {
       // console.log("key", key);
       // console.log("value", value);
-      key === "coins" && ( outputAssets.push( pluts.Value.lovelaces(output.value.coins)));
+      key === "coins" && ( outputAssets.push( output.value.coins > 0 ? pluts.Value.lovelaces(output.value.coins) : pluts.Value.lovelaces(1000000) ));
       key === "assets" &&  Object.entries(value).length > 0 &&
         Object.entries(value).map(([asset, quantity]: any) => {    
           let assetNew = pluts.Value.singleAsset(new pluts.Hash28(splitAsset(asset)[0]), fromHex(splitAsset(asset)[1]), quantity)
