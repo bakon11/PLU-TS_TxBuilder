@@ -3,7 +3,7 @@ import { koiosAPI, kupoAPI, genKeys, a2hex, splitAsset, fromHexString, fromHex, 
 import { genSeedPhrase, seedPhraseToEntropy, genRootPrivateKey, genAccountPrivatekey, genAddressPrivatekey } from "./cryptoPLUTS.ts"
 import { txBuilder_PLUTS } from "./txbuilderPLUTS.ts";
 import * as pluts from "@harmoniclabs/plu-ts";
-// import { blake2b_224 } from "@harmoniclabs/crypto";
+import { blake2b_224 } from "@harmoniclabs/crypto";
 import * as plutsBip from "@harmoniclabs/bip32_ed25519";
 import { decrypt } from "./cryptoPLUTS.ts";
 
@@ -145,8 +145,15 @@ const buildTx = async () => {
   // console.log("addressKey Prv pluts: ", plutsBip.XPrv.fromBytes(accountAddressKeyPrv.bytes));
   // console.log("addressKey Prv pluts: ", accountAddressKeyPrv);
   // console.log("accountAddressKeyPrv: ", blake2b_224((accountAddressKeyPrv.bytes)));
-  // const accountAddressKeyPub = accountAddressKeyPrv.public();
-  // console.log("accountAddress Key Hash from @harmoniclabs/bip32_ed25519 ", toHex( blake2b_224(accountAddressKeyPub.toPubKeyBytes())));
+  const accountAddressKeyPub = accountAddressKeyPrv.public();
+  console.log("accountAddressKeyPub: ", toHex(accountAddressKeyPub.bytes));
+  console.log("accountAddress Key Hash from @harmoniclabs/bip32_ed25519 ", toHex( blake2b_224(accountAddressKeyPub.toPubKeyBytes())));
+  const addr: any = pluts.Address.fromXPrv(accountAddressKeyPrv, "mainnet");
+  console.log("address: ", addr.paymentCreds.hash.toString());
+  const baseAddress = pluts.Address.fromBytes(addr.paymentCreds.hash);
+  console.log("Base Address", baseAddress);
+  // const baseAddress = pluts.Address.fromBytes(accountAddressKeyPub).toString();
+  // console.log("baseAddress: ", baseAddress);
   // console.log("input address hash", pluts.Address.fromString(inputAddress).paymentCreds.hash.toString())
   // const addressKeyPrvCML = await genAddressSigningKey(accountKeyPrvCML, 0);
   // console.log("addressKey prv CML: ", addressKeyPrvCML.as_bytes());
@@ -155,10 +162,9 @@ const buildTx = async () => {
 
   // console.log("accountAddress Key Hash from", toHex(addressKeyPrvCML.to_public().to_raw_key().hash().to_bytes()));
 
-  await txBuilder_PLUTS(defaultProtocolParameters, kupoInputs, cborInputs, utxoOutputs, changeAddress, accountAddressKeyPrv, metadata);
+  // await txBuilder_PLUTS(defaultProtocolParameters, kupoInputs, cborInputs, utxoOutputs, changeAddress, accountAddressKeyPrv, metadata);
 };
 
 buildTx();
-
 
 // genKeys();
